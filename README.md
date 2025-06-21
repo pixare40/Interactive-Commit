@@ -236,7 +236,7 @@ git commit -m "feat: implement distributed caching layer"
 - **No Storage**: Audio info only added to git commits you create
 - **Opt-out Anytime**: Simply remove the git hook to disable.
 
-## 🔧 Troubleshooting.
+## 🔧 Troubleshooting
 
 ### Global Hooks Not Working?
 
