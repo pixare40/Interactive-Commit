@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/pixare40/interactive-commit/internal/audio"
+	"github.com/pixare40/interactive-commit/internal/format"
 	"github.com/spf13/cobra"
 )
 
@@ -46,21 +47,29 @@ func runHook(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 	
-	// Format the audio info
-	var audioLine string
-	if media.Artist != "" {
-		audioLine = fmt.Sprintf("🎵 Currently playing: \"%s\" by %s (%s)", media.Title, media.Artist, media.Source)
-	} else {
-		audioLine = fmt.Sprintf("🎵 Currently playing: \"%s\" (%s)", media.Title, media.Source)
+	// Check if there's actual commit content (non-comment, non-whitespace lines)
+	lines := strings.Split(string(content), "\n")
+	hasRealContent := false
+	for _, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		if trimmed != "" && !strings.HasPrefix(trimmed, "#") {
+			hasRealContent = true
+			break
+		}
 	}
 	
-	// Append to commit message
-	originalMsg := strings.TrimSpace(string(content))
-	if originalMsg == "" {
-		return nil // Empty commit message, don't add anything
+	if !hasRealContent {
+		return nil // No actual commit content, don't add anything
 	}
 	
-	newContent := originalMsg + "\n\n" + audioLine + "\n"
+	// Format the audio info using shared utility
+	audioLine := format.FormatCommitMessage(media)
+	
+	// Preserve original content structure, only trim trailing newlines
+	originalContent := strings.TrimRight(string(content), "\n")
+	
+	// Append audio info with proper spacing
+	newContent := originalContent + "\n\n" + audioLine + "\n"
 	
 	// Write back to file
 	if err := os.WriteFile(commitMsgFile, []byte(newContent), 0644); err != nil {

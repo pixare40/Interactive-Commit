@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/pixare40/interactive-commit/internal/audio"
+	"github.com/pixare40/interactive-commit/internal/format"
 	"github.com/spf13/cobra"
 )
 
@@ -60,15 +61,8 @@ func runDetect(cmd *cobra.Command, args []string) error {
 	fmt.Printf("   Type:   %s\n", media.Type)
 	
 	// Show what would be added to commit
-	commitText := formatForCommit(media)
+	commitText := format.FormatCommitMessage(media)
 	fmt.Printf("\n💬 Commit message addition:\n%s\n", commitText)
 	
 	return nil
-}
-
-func formatForCommit(media *audio.MediaInfo) string {
-	if media.Artist != "" {
-		return fmt.Sprintf("🎵 Currently playing: \"%s\" by %s (%s)", media.Title, media.Artist, media.Source)
-	}
-	return fmt.Sprintf("🎵 Currently playing: \"%s\" (%s)", media.Title, media.Source)
 } 
