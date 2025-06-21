@@ -6,6 +6,8 @@ Interactive-Commit is a git hook that automatically appends your currently playi
 
 ![Commit Example](https://img.shields.io/badge/🎵%20Currently%20playing-"Hamnitishi%20(feat.%20Talia%20Oyando)"%20by%20E--Sir%20(Spotify)-green).
 
+https://github.com/user-attachments/assets/68d1fdcf-912b-4f60-a9b5-76ed94cf1d0e
+
 ## 🌟 Vision
 
 Imagine correlating your most productive coding sessions with your playlist, or looking back at old commits and remembering the exact mood when you wrote that breakthrough algorithm. This isn't just about fun commit messages - it's about creating data that could revolutionize how we understand developer productivity.
