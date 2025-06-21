@@ -2,7 +2,9 @@
 
 **Transform your git commits with the soundtrack of your code.**
 
-Interactive-Commit is a git hook that automatically appends your currently playing audio to commit messages, creating a rich narrative of your development journey.
+Interactive-Commit is a git hook that automatically appends your currently playing audio to commit messages, creating a rich narrative of your development journey. **Working solution for WSL2/Windows environments!**
+
+![Commit Example](https://img.shields.io/badge/🎵%20Currently%20playing-"Hamnitishi%20(feat.%20Talia%20Oyando)"%20by%20E--Sir%20(Spotify)-green)
 
 ## 🌟 Vision
 
@@ -10,7 +12,7 @@ Imagine correlating your most productive coding sessions with your playlist, or 
 
 **Future Possibilities:**
 - 🎯 **Developer Analytics**: Spotify/YouTube Music insights for optimal coding playlists
-- 📊 **Team Coordination**: Shared soundtracks for better collaboration
+- 📊 **Team Coordination**: Shared soundtracks for better collaboration  
 - 🧠 **Productivity Research**: Correlate music genres with code quality and bug rates
 - 💼 **Enterprise Features**: Mood-based development environment optimization
 
@@ -23,22 +25,17 @@ go install github.com/pixare40/interactive-commit@latest
 # Set up git hooks for current repository
 interactive-commit install --local
 
-# Or enable globally for all repositories
-interactive-commit install --global
-
 # Make a commit and watch the magic happen!
-git commit -m "fix: resolve authentication bug"
-# Result: "fix: resolve authentication bug\n\n🎵 Currently playing: 'Focus Flow' by Lo-Fi Study Beats"
+git add . && git commit -m "fix: resolve authentication bug"
+# Result: Your commit message + 🎵 Currently playing: "Focus Flow" by Lo-Fi Study Beats (Spotify)
 ```
 
 ## 🎯 Features
 
-- **🎵 Universal Audio Detection**: Works with Spotify, YouTube, VLC, and more
-- **⚡ Lightning Fast**: Sub-millisecond performance impact on git workflow
-- **🔧 Smart Installation**: Detects and preserves existing git hooks
-- **👥 Team-Friendly**: Repository-specific configuration support
-- **🔒 Privacy-First**: Granular controls for work vs personal repositories
-- **🌍 Cross-Platform**: Windows, macOS, Linux support (including WSL2)
+- **🎵 Universal Audio Detection**: Works with Spotify, YouTube Music, Chrome, Edge, Firefox
+- **🌍 WSL2/Windows Bridge**: Breakthrough solution for cross-platform audio detection
+- **🔒 Privacy-First**: All audio data stays local on your machine
+- **📦 Single Binary**: Zero dependency installation
 
 ## 🏗 Architecture
 
@@ -51,163 +48,204 @@ git commit -m "fix: resolve authentication bug"
                               ▼
                     ┌──────────────────┐
                     │ Audio Sources    │
+                    │ • Window Titles  │
                     │ • MPRIS/D-Bus    │
-                    │ • Windows APIs   │
-                    │ • Browser Bridge │
-                    │ • Streaming APIs │
+                    │ • PowerShell API │
                     └──────────────────┘
 ```
 
-## 🔧 Technical Challenges & Solutions
+## 🔧 Platform Support
 
-### WSL2 ↔ Windows Audio Detection
-
-**The Problem**: WSL2 runs in a separate Linux VM and can't directly access Windows audio streams.
-
-**Our Approach**:
-1. **Windows Companion Service**: Small Windows binary that reads current media and communicates with WSL2
-2. **Registry Bridge**: Direct access to Windows Media Session registry entries
-3. **Browser Extensions**: Web-based audio detection for streaming services
-4. **Community Plugins**: Extensible architecture for platform-specific solutions
-
-### Platform Detection Matrix
+### ✅ Currently Working
 
 | Platform | Audio Source | Method | Status |
 |----------|-------------|---------|---------|
-| Linux Native | MPRIS/D-Bus | `playerctl` | ✅ Implemented |
-| WSL2 | Windows Media | Registry/WMI | 🚧 In Progress |
-| Windows | Native APIs | Windows Media Foundation | 📋 Planned |
-| macOS | Now Playing | MediaPlayer Framework | 📋 Planned |
-| Web Browsers | Extensions | WebSocket Bridge | 💡 Community |
+| WSL2 | Windows Spotify | Window Title Parsing | ✅ **Working** |
+| WSL2 | Windows Browsers | Window Title Parsing | ✅ **Working** |
+| Linux Native | MPRIS/D-Bus | `playerctl` | ✅ **Working** |
 
-## 📦 Installation Options
+### 🚧 WSL2/Windows Integration (Our Breakthrough!)
 
-### Smart CLI Installer (Recommended)
+**The Problem**: WSL2 runs in a separate Linux VM and traditionally can't access Windows audio streams.
+
+**Our Solution**: 
+1. **Window Title Bridge**: PowerShell queries Windows process window titles from WSL2
+2. **Smart Pattern Matching**: Intelligent parsing of Spotify, YouTube Music, and browser titles
+3. **Cross-Platform Communication**: Seamless WSL2 ↔ Windows process interaction
+
+**Example Detection Patterns:**
+- **Spotify**: `"Artist - Song Title"` → Parsed to structured data
+- **YouTube Music**: `"Song - Artist - YouTube Music"` → Clean extraction  
+- **Browser Media**: Generic `"Title - Source"` patterns for web players
+
+## 📦 Installation
+
+### Prerequisites
+- Go 1.21+ 
+- Git 2.9+
+- For WSL2: PowerShell accessible via `powershell.exe`
+- For Linux: Optional `playerctl` for MPRIS support
+
+### Install from Source
 ```bash
-interactive-commit install [--local|--global|--team]
+git clone https://github.com/pixare40/interactive-commit.git
+cd interactive-commit
+go build -o interactive-commit ./cmd/interactive-commit
+
+# Install git hook
+./interactive-commit install --local
 ```
 
-### Manual Hook Installation
+### Install from Release (Coming Soon)
 ```bash
-# Copy binary to hooks directory
-cp interactive-commit .git/hooks/prepare-commit-msg
-chmod +x .git/hooks/prepare-commit-msg
+# Download binary from GitHub releases
+# curl -L https://github.com/pixare40/interactive-commit/releases/latest/download/interactive-commit-linux -o interactive-commit
+# chmod +x interactive-commit && ./interactive-commit install --local
 ```
 
-### Pre-commit Integration
-```yaml
-# .pre-commit-config.yaml
-repos:
-  - repo: https://github.com/yourname/interactive-commit
-    hooks:
-      - id: audio-commit
+## 🎮 Usage
+
+### Install Hook
+```bash
+# Install for current repository
+interactive-commit install --local
+
+# Global installation (coming soon)
+# interactive-commit install --global
 ```
 
-## ⚙ Configuration
+### Test Detection
+```bash
+# Test what's currently playing
+interactive-commit detect
 
-Create `.interactive-commit.json` in your repository root:
+# Example output:
+# 🎵 Detecting currently playing audio...
+# 📡 Available detectors: 1
+#   ✅ WSL2/Windows Media Session
+# 
+# 🎵 Currently playing:
+#    Title:  Hamnitishi (feat. Talia Oyando)
+#    Artist: E-Sir
+#    Source: Spotify
+#    Type:   song
+#
+# 💬 Commit message addition:
+# 🎵 Currently playing: "Hamnitishi (feat. Talia Oyando)" by E-Sir (Spotify)
+```
 
-```json
-{
-  "enabled": true,
-  "format": "emoji",
-  "privacy": {
-    "enableForWork": false,
-    "sensitiveKeywords": ["meeting", "call", "private"]
-  },
-  "sources": {
-    "spotify": true,
-    "youtube": true,
-    "vlc": true,
-    "browserBridge": false
-  },
-  "templates": {
-    "song": "🎵 Currently playing: '{title}' by {artist}",
-    "podcast": "🎙 Listening to: '{title}' - {podcast}",
-    "focus": "🎧 Focus session: {genre} music"
-  }
-}
+### Make Musical Commits
+```bash
+# Start playing music, then commit normally
+git add .
+git commit -m "feat: implement user authentication"
+
+# Your commit message automatically becomes:
+# feat: implement user authentication
+#
+# 🎵 Currently playing: "Coding Flow" by Lo-Fi Beats (Spotify)
 ```
 
 ## 🛠 Development
 
-### Prerequisites
-- Go 1.21+
-- Git 2.9+ (for git hooks support)
+### Project Structure
+```
+├── README.md                    # This file
+├── cmd/interactive-commit/      # CLI entry point
+│   └── main.go                 # Application main
+├── internal/
+│   ├── audio/                  # Audio detection engine
+│   │   └── detector.go         # Multi-platform audio detection
+│   └── cli/                    # Command-line interface
+│       ├── root.go            # Root command & version
+│       ├── detect.go          # Audio detection testing
+│       ├── hook.go            # Git hook handler
+│       └── install.go         # Hook installation
+├── go.mod                      # Go module definition
+└── go.sum                      # Dependency checksums
+```
 
 ### Building from Source
 ```bash
-git clone https://github.com/yourname/interactive-commit.git
+# Clone and build
+git clone https://github.com/pixare40/interactive-commit.git
 cd interactive-commit
+go mod tidy
 go build -o interactive-commit ./cmd/interactive-commit
+
+# Run tests
+go test ./...
+
+# Cross-compile for different platforms
+GOOS=windows GOARCH=amd64 go build -o interactive-commit.exe ./cmd/interactive-commit
+GOOS=darwin GOARCH=amd64 go build -o interactive-commit-macos ./cmd/interactive-commit
 ```
 
-### Project Structure
-```
-├── cmd/interactive-commit/     # CLI entry point
-├── internal/
-│   ├── audio/                 # Audio detection interfaces
-│   ├── hooks/                 # Git hook management
-│   ├── config/                # Configuration handling
-│   └── formatters/            # Commit message templates
-├── pkg/
-│   ├── detectors/             # Platform-specific audio detectors
-│   └── bridge/                # Cross-platform communication
-└── scripts/                   # Installation and setup scripts
-```
-
-## 🤝 Contributing
-
-We need your help to make this work across all platforms! Priority areas:
-
-- **Windows Native Audio Detection**: Windows Media Foundation APIs
-- **Browser Extensions**: Chrome/Firefox extensions for web-based audio
-- **macOS Support**: Now Playing integration
-- **Mobile Bridges**: iOS/Android companion apps
-- **Streaming Service APIs**: Direct integration with Spotify/YouTube Music
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
-
-## 🎨 Example Outputs
+## 🎨 Example Commits
 
 ```bash
-# Song playing
-git commit -m "feat: add user authentication"
-# Result:
-# feat: add user authentication
-# 
-# 🎵 Currently playing: "Bohemian Rhapsody" by Queen (Spotify)
-
-# Podcast listening
+# Music while coding
 git commit -m "refactor: optimize database queries"
 # Result:
 # refactor: optimize database queries
 #
-# 🎙 Listening to: "The Changelog #423: Building Better APIs" (Overcast)
+# 🎵 Currently playing: "Bohemian Rhapsody" by Queen (Spotify)
 
-# Focus music
-git commit -m "fix: resolve memory leak"
+# Podcast while debugging  
+git commit -m "fix: resolve memory leak in worker pool"
 # Result:
-# fix: resolve memory leak
+# fix: resolve memory leak in worker pool
 #
-# 🎧 Focus session: Lo-Fi Hip Hop for concentration
+# 🎵 Currently playing: "The Changelog #423: Building Better APIs" (YouTube Music)
+
+# Focus music for deep work
+git commit -m "feat: implement distributed caching layer"
+# Result:
+# feat: implement distributed caching layer
+#
+# 🎵 Currently playing: "Deep Focus" by Brain.fm (Microsoft Edge)
 ```
 
-## 📊 Data & Privacy
+## 🔒 Privacy & Data
 
-Your audio data stays local by default. Optional features:
-- **Anonymous Analytics**: Help us understand usage patterns
-- **Team Insights**: Aggregate data for productivity research
-- **Opt-in Sharing**: Contribute to open research on developer productivity
+- **100% Local**: All audio detection happens on your machine
+- **No Telemetry**: No data sent to external services
+- **No Storage**: Audio info only added to git commits you create
+- **Opt-out Anytime**: Simply remove the git hook to disable
 
 ## 🗺 Roadmap
 
-- **v0.1**: Basic Linux/MPRIS support ✅
-- **v0.2**: Windows/WSL2 bridge 🚧
-- **v0.3**: Smart installation system
-- **v0.4**: Browser extension bridge
-- **v0.5**: Streaming service APIs
-- **v1.0**: Cross-platform stability
+- **v0.1**: ✅ WSL2/Windows Spotify detection via window titles
+- **v0.2**: ✅ Multi-browser support (Chrome, Edge, Firefox)  
+- **v0.3**: ✅ Git hook installation system
+- **v0.4**: 🚧 Linux native MPRIS support improvements
+- **v0.5**: 📋 macOS Now Playing integration
+- **v0.6**: 📋 Global git hook installation
+- **v0.7**: 📋 Configuration file support
+- **v1.0**: 📋 Cross-platform stability & release
+
+## 🤝 Contributing
+
+**High Priority:**
+- **macOS Support**: Now Playing integration
+- **Windows Native**: Direct Windows Media Foundation API support  
+- **Config System**: `.interactive-commit.json` configuration
+- **CI/CD**: Automated testing and releases
+- **Documentation**: Usage examples and troubleshooting
+
+**Getting Started:**
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature/amazing-feature`
+3. Make your changes and test thoroughly
+4. Commit with Interactive-Commit: `git commit -m "feat: add amazing feature"`
+5. Push and create a Pull Request
+
+## ❤️ Acknowledgments
+
+- **Windows Media Session API** for the inspiration (even though we ended up using window titles!)
+- **MPRIS specification** for Linux audio standards
+- **Cobra CLI** for excellent command-line interface framework
+- **The WSL2 team** for making cross-platform development possible
 
 ## 📄 License
 
@@ -215,4 +253,12 @@ MIT License - See [LICENSE](LICENSE) for details.
 
 ---
 
-**Ready to soundtrack your code?** 🎵 Install Interactive-Commit and make every commit tell a story!
+**Ready to soundtrack your code?** 🎵 
+
+```bash
+go install github.com/pixare40/interactive-commit@latest
+interactive-commit install --local
+git commit -m "feat: add musical commits to my workflow"
+```
+
+*Soundtrack your creations.*
