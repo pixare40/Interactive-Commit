@@ -211,7 +211,7 @@ git commit -m "feat: implement distributed caching layer"
 - **100% Local**: All audio detection happens on your machine
 - **No Telemetry**: No data sent to external services
 - **No Storage**: Audio info only added to git commits you create
-- **Opt-out Anytime**: Simply remove the git hook to disable
+- **Opt-out Anytime**: Simply remove the git hook to disable.
 
 ## 🗺 Roadmap
 
