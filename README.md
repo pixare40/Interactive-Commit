@@ -261,4 +261,4 @@ interactive-commit install --local
 git commit -m "feat: add musical commits to my workflow"
 ```
 
-*Soundtrack your creations.*
+*Soundtrack your creations.* .
