@@ -4,7 +4,7 @@
 
 Interactive-Commit is a git hook that automatically appends your currently playing audio to commit messages, creating a rich narrative of your development journey. **Working solution for WSL2/Windows environments!**
 
-![Commit Example](https://img.shields.io/badge/🎵%20Currently%20playing-"Hamnitishi%20(feat.%20Talia%20Oyando)"%20by%20E--Sir%20(Spotify)-green)
+![Commit Example](https://img.shields.io/badge/🎵%20Currently%20playing-"Hamnitishi%20(feat.%20Talia%20Oyando)"%20by%20E--Sir%20(Spotify)-green).
 
 ## 🌟 Vision
 
