@@ -4,7 +4,7 @@
 
 Interactive-Commit is a git hook that automatically appends your currently playing audio to commit messages, creating a rich narrative of your development journey. **Working solution for WSL2/Windows environments!**
 
-![Commit Example](https://img.shields.io/badge/🎵%20Currently%20playing-"Hamnitishi%20(feat.%20Talia%20Oyando)"%20by%20E--Sir%20(Spotify)-green)
+![Commit Example](https://img.shields.io/badge/🎵%20Currently%20playing-"Hamnitishi%20(feat.%20Talia%20Oyando)"%20by%20E--Sir%20(Spotify)-green).
 
 ## 🌟 Vision
 
@@ -22,8 +22,11 @@ Imagine correlating your most productive coding sessions with your playlist, or 
 # Install the CLI tool
 go install github.com/pixare40/interactive-commit@latest
 
-# Set up git hooks for current repository
+# Option 1: Install for current repository only
 interactive-commit install --local
+
+# Option 2: Install globally for ALL repositories (recommended!)
+interactive-commit install --global
 
 # Make a commit and watch the magic happen!
 git add . && git commit -m "fix: resolve authentication bug"
@@ -92,8 +95,11 @@ git clone https://github.com/pixare40/interactive-commit.git
 cd interactive-commit
 go build -o interactive-commit ./cmd/interactive-commit
 
-# Install git hook
+# Install locally for current repo only
 ./interactive-commit install --local
+
+# OR install globally for all repositories
+./interactive-commit install --global
 ```
 
 ### Install from Release (Coming Soon)
@@ -106,13 +112,30 @@ go build -o interactive-commit ./cmd/interactive-commit
 ## 🎮 Usage
 
 ### Install Hook
+
 ```bash
-# Install for current repository
+# Install for current repository only
 interactive-commit install --local
 
-# Global installation (coming soon)
-# interactive-commit install --global
+# Install globally for ALL repositories (recommended!)
+interactive-commit install --global
+
+# Verify installation
+interactive-commit detect
 ```
+
+**Global vs Local Installation:**
+
+| Mode | Command | Scope | Use Case |
+|------|---------|-------|----------|
+| **Local** | `--local` | Current repository only | Testing, specific projects |
+| **Global** | `--global` | All repositories | Default recommendation |
+
+**Global Installation Details:**
+- Creates hooks in `~/.config/git/hooks/` (Linux/WSL2)
+- Configures Git's `core.hooksPath` globally 
+- Works automatically in ALL repositories
+- To disable: `git config --global --unset core.hooksPath`
 
 ### Test Detection
 ```bash
@@ -213,6 +236,46 @@ git commit -m "feat: implement distributed caching layer"
 - **No Storage**: Audio info only added to git commits you create
 - **Opt-out Anytime**: Simply remove the git hook to disable.
 
+## 🔧 Troubleshooting
+
+### Global Hooks Not Working?
+
+```bash
+# Check if global hooks path is configured
+git config --global core.hooksPath
+
+# Should show: /home/username/.config/git/hooks (absolute path)
+# If it shows: ~/.config/git/hooks (with tilde), fix it:
+git config --global core.hooksPath "$(echo ~/.config/git/hooks)"
+
+# Verify the hook file exists and is executable
+ls -la ~/.config/git/hooks/prepare-commit-msg
+
+# Test the hook manually
+cd /any/git/repo
+interactive-commit detect
+```
+
+### WSL2 Audio Detection Issues?
+
+```bash
+# Verify PowerShell is accessible
+powershell.exe -Command "Write-Host 'PowerShell working'"
+
+# Test audio detection directly
+interactive-commit detect
+```
+
+### Permission Issues?
+
+```bash
+# Make sure hook is executable
+chmod +x ~/.config/git/hooks/prepare-commit-msg
+
+# Check Git version (needs 2.9+)
+git --version
+```
+
 ## 🗺 Roadmap
 
 - **v0.1**: ✅ WSL2/Windows Spotify detection via window titles
@@ -220,7 +283,7 @@ git commit -m "feat: implement distributed caching layer"
 - **v0.3**: ✅ Git hook installation system
 - **v0.4**: 🚧 Linux native MPRIS support improvements
 - **v0.5**: 📋 macOS Now Playing integration
-- **v0.6**: 📋 Global git hook installation
+- **v0.6**: ✅ Global git hook installation
 - **v0.7**: 📋 Configuration file support
 - **v1.0**: 📋 Cross-platform stability & release
 
