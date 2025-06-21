@@ -155,13 +155,14 @@ try {
         }
     }
     
-    # Check Chrome/Edge for YouTube Music, etc.
+    # Check Chrome/Edge for YouTube Music, YouTube, etc.
     $browsers = @('chrome', 'msedge', 'firefox')
     foreach ($browserName in $browsers) {
-        $browser = Get-Process -Name $browserName -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowTitle -and $_.MainWindowTitle -notlike '*New Tab*' -and $_.MainWindowTitle -notlike '*Google Chrome*' -and $_.MainWindowTitle -notlike '*Microsoft Edge*' }
+        $browser = Get-Process -Name $browserName -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowTitle -and $_.MainWindowTitle -notlike '*New Tab*' -and $_.MainWindowTitle -ne 'Google Chrome' -and $_.MainWindowTitle -ne 'Microsoft Edge' -and $_.MainWindowTitle -ne 'Firefox' }
         if ($browser) {
             foreach ($proc in $browser) {
                 $title = $proc.MainWindowTitle
+                
                 # YouTube Music pattern: "Song Name - Artist - YouTube Music"
                 if ($title -match '(.+) - (.+) - YouTube Music') {
                     $song = $matches[1]
@@ -170,8 +171,62 @@ try {
                     $result | ConvertTo-Json -Compress
                     exit
                 }
-                # Generic browser media pattern
-                if ($title -match '(.+) - (.+)' -and $title -notlike '*Google*' -and $title -notlike '*Microsoft*') {
+                
+                # Regular YouTube patterns
+                # Pattern: "Artist - Song Title (extras) - YouTube - Google Chrome"
+                if ($title -match '(.+) - (.+) - YouTube - Google Chrome$') {
+                    $artist = $matches[1]
+                    $songWithExtras = $matches[2]
+                    # Clean up song title by removing common extras in parentheses/brackets
+                    $cleanSong = $songWithExtras -replace '\s*\([^)]*\)\s*', '' -replace '\s*\[[^\]]*\]\s*', ''
+                    $cleanSong = $cleanSong.Trim()
+                    if ($cleanSong -eq '') { $cleanSong = $songWithExtras }
+                    $result = @{ Title = $cleanSong; Artist = $artist; Source = 'YouTube'; Album = '' }
+                    $result | ConvertTo-Json -Compress
+                    exit
+                }
+                
+                # Pattern: "Video Title - YouTube - Google Chrome"
+                if ($title -match '(.+) - YouTube - Google Chrome$') {
+                    $videoTitle = $matches[1]
+                    # Try to extract artist - song if it contains a dash
+                    if ($videoTitle -match '(.+) - (.+)') {
+                        $artist = $matches[1]
+                        $song = $matches[2] -replace '\s*\([^)]*\)\s*', '' -replace '\s*\[[^\]]*\]\s*', ''
+                        $song = $song.Trim()
+                        if ($song -eq '') { $song = $matches[2] }
+                        $result = @{ Title = $song; Artist = $artist; Source = 'YouTube'; Album = '' }
+                    } else {
+                        $result = @{ Title = $videoTitle; Artist = ''; Source = 'YouTube'; Album = '' }
+                    }
+                    $result | ConvertTo-Json -Compress
+                    exit
+                }
+                
+                # Pattern for other browsers: "Artist - Song Title - YouTube"  
+                if ($title -match '(.+) - (.+) - YouTube$') {
+                    $artist = $matches[1]
+                    $song = $matches[2]
+                    $result = @{ Title = $song; Artist = $artist; Source = 'YouTube'; Album = '' }
+                    $result | ConvertTo-Json -Compress
+                    exit
+                }
+                
+                # Generic YouTube pattern fallback
+                if ($title -like '*YouTube*' -and $title -match '(.+) - (.+)') {
+                    $part1 = $matches[1]
+                    $part2 = $matches[2] -replace ' - YouTube.*', ''
+                    # Clean up extras
+                    $part2 = $part2 -replace '\s*\([^)]*\)\s*', '' -replace '\s*\[[^\]]*\]\s*', ''
+                    $part2 = $part2.Trim()
+                    if ($part2 -eq '') { $part2 = $matches[2] -replace ' - YouTube.*', '' }
+                    $result = @{ Title = $part2; Artist = $part1; Source = 'YouTube'; Album = '' }
+                    $result | ConvertTo-Json -Compress
+                    exit
+                }
+                
+                # Generic browser media pattern (fallback)
+                if ($title -match '(.+) - (.+)' -and $title -notlike '*Google*' -and $title -notlike '*Microsoft*' -and $title -notlike '*Firefox*') {
                     $song = $matches[2]
                     $artist = $matches[1]
                     $friendlyBrowser = switch ($browserName) {
