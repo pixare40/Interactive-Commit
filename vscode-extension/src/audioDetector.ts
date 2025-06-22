@@ -1,4 +1,4 @@
-import { exec } from 'child_process';
+import { exec, execFile } from 'child_process';
 import { promisify } from 'util';
 import * as os from 'os';
 import * as fs from 'fs';
@@ -6,6 +6,7 @@ import * as path from 'path';
 import { ConfigManager } from './configManager';
 
 const execAsync = promisify(exec);
+const execFileAsync = promisify(execFile);
 
 export interface MediaInfo {
     title: string;
@@ -94,26 +95,16 @@ class WSLWindowsDetector implements AudioDetectorInterface {
 
     async isAvailable(): Promise<boolean> {
         try {
-            // Try PowerShell Core first (pwsh.exe), then Windows PowerShell (powershell.exe)
-            await execAsync('pwsh.exe -NoLogo -Command "Write-Host test"');
+            // Use execFile to avoid shell escaping issues  
+            await execFileAsync('powershell.exe', ['-Command', 'Write-Host test']);
             return true;
         } catch {
-            try {
-                await execAsync('powershell.exe -NoLogo -Command "Write-Host test"');
-                return true;
-            } catch {
-                return false;
-            }
+            return false;
         }
     }
 
     async detect(): Promise<MediaInfo | null> {
         const script = `
-# Suppress progress bars and verbose output
-$ProgressPreference = 'SilentlyContinue'
-$VerbosePreference = 'SilentlyContinue'
-$WarningPreference = 'SilentlyContinue'
-
 try {
     # Check Spotify
     $spotify = Get-Process -Name 'Spotify' -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowTitle -and $_.MainWindowTitle -ne 'Spotify' }
@@ -122,75 +113,115 @@ try {
         if ($title -match '(.+) - (.+)') {
             $artist = $matches[1]
             $song = $matches[2]
-            $result = @{ Title = $song; Artist = $artist; Source = 'Spotify'; Type = 'song' }
-            Write-Output ($result | ConvertTo-Json -Compress)
-            exit 0
+            $result = @{ Title = $song; Artist = $artist; Source = 'Spotify'; Album = '' }
+            $result | ConvertTo-Json -Compress
+            exit
         }
     }
     
-    # Check browsers for YouTube Music, YouTube, etc.
+    # Check Chrome/Edge for YouTube Music, YouTube, etc.
     $browsers = @('chrome', 'msedge', 'firefox')
     foreach ($browserName in $browsers) {
-        $browser = Get-Process -Name $browserName -ErrorAction SilentlyContinue | Where-Object { 
-            $_.MainWindowTitle -and 
-            $_.MainWindowTitle -notlike '*New Tab*' -and 
-            $_.MainWindowTitle -ne 'Google Chrome' -and 
-            $_.MainWindowTitle -ne 'Microsoft Edge' -and 
-            $_.MainWindowTitle -ne 'Firefox' 
-        }
+        $browser = Get-Process -Name $browserName -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowTitle -and $_.MainWindowTitle -notlike '*New Tab*' -and $_.MainWindowTitle -ne 'Google Chrome' -and $_.MainWindowTitle -ne 'Microsoft Edge' -and $_.MainWindowTitle -ne 'Firefox' }
         if ($browser) {
             foreach ($proc in $browser) {
                 $title = $proc.MainWindowTitle
                 
-                # YouTube Music pattern
+                # YouTube Music pattern: "Song Name - Artist - YouTube Music"
                 if ($title -match '(.+) - (.+) - YouTube Music') {
                     $song = $matches[1]
                     $artist = $matches[2]
-                    $result = @{ Title = $song; Artist = $artist; Source = 'YouTube Music'; Type = 'song' }
-                    Write-Output ($result | ConvertTo-Json -Compress)
-                    exit 0
+                    $result = @{ Title = $song; Artist = $artist; Source = 'YouTube Music'; Album = '' }
+                    $result | ConvertTo-Json -Compress
+                    exit
                 }
                 
-                # Regular YouTube pattern
-                if ($title -match '(.+) - (.+) - YouTube') {
+                # Regular YouTube patterns
+                # Pattern: "Artist - Song Title (extras) - YouTube - Google Chrome"
+                if ($title -match '(.+) - (.+) - YouTube - Google Chrome$') {
                     $artist = $matches[1]
-                    $song = $matches[2] -replace '\\s*\\([^)]*\\)\\s*', '' -replace '\\s*\\[[^\\]]*\\]\\s*', ''
-                    $song = $song.Trim()
-                    if ($song -eq '') { $song = $matches[2] }
-                    $result = @{ Title = $song; Artist = $artist; Source = 'YouTube'; Type = 'video' }
-                    Write-Output ($result | ConvertTo-Json -Compress)
-                    exit 0
+                    $songWithExtras = $matches[2]
+                    # Clean up song title by removing common extras in parentheses/brackets
+                    $cleanSong = $songWithExtras -replace '\\s*\\([^)]*\\)\\s*', '' -replace '\\s*\\[[^\\]]*\\]\\s*', ''
+                    $cleanSong = $cleanSong.Trim()
+                    if ($cleanSong -eq '') { $cleanSong = $songWithExtras }
+                    $result = @{ Title = $cleanSong; Artist = $artist; Source = 'YouTube'; Album = '' }
+                    $result | ConvertTo-Json -Compress
+                    exit
+                }
+                
+                # Pattern: "Video Title - YouTube - Google Chrome"
+                if ($title -match '(.+) - YouTube - Google Chrome$') {
+                    $videoTitle = $matches[1]
+                    # Try to extract artist - song if it contains a dash
+                    if ($videoTitle -match '(.+) - (.+)') {
+                        $artist = $matches[1]
+                        $song = $matches[2] -replace '\\s*\\([^)]*\\)\\s*', '' -replace '\\s*\\[[^\\]]*\\]\\s*', ''
+                        $song = $song.Trim()
+                        if ($song -eq '') { $song = $matches[2] }
+                        $result = @{ Title = $song; Artist = $artist; Source = 'YouTube'; Album = '' }
+                    } else {
+                        $result = @{ Title = $videoTitle; Artist = ''; Source = 'YouTube'; Album = '' }
+                    }
+                    $result | ConvertTo-Json -Compress
+                    exit
+                }
+                
+                # Pattern for other browsers: "Artist - Song Title - YouTube"  
+                if ($title -match '(.+) - (.+) - YouTube$') {
+                    $artist = $matches[1]
+                    $song = $matches[2]
+                    $result = @{ Title = $song; Artist = $artist; Source = 'YouTube'; Album = '' }
+                    $result | ConvertTo-Json -Compress
+                    exit
+                }
+                
+                # Generic YouTube pattern fallback
+                if ($title -like '*YouTube*' -and $title -match '(.+) - (.+)') {
+                    $part1 = $matches[1]
+                    $part2 = $matches[2] -replace ' - YouTube.*', ''
+                    # Clean up extras
+                    $part2 = $part2 -replace '\\s*\\([^)]*\\)\\s*', '' -replace '\\s*\\[[^\\]]*\\]\\s*', ''
+                    $part2 = $part2.Trim()
+                    if ($part2 -eq '') { $part2 = $matches[2] -replace ' - YouTube.*', '' }
+                    $result = @{ Title = $part2; Artist = $part1; Source = 'YouTube'; Album = '' }
+                    $result | ConvertTo-Json -Compress
+                    exit
+                }
+                
+                # Generic browser media pattern (fallback)
+                if ($title -match '(.+) - (.+)' -and $title -notlike '*Google*' -and $title -notlike '*Microsoft*' -and $title -notlike '*Firefox*') {
+                    $song = $matches[2]
+                    $artist = $matches[1]
+                    $friendlyBrowser = switch ($browserName) {
+                        'chrome' { 'Google Chrome' }
+                        'msedge' { 'Microsoft Edge' }
+                        'firefox' { 'Firefox' }
+                        default { $browserName }
+                    }
+                    $result = @{ Title = $song; Artist = $artist; Source = $friendlyBrowser; Album = '' }
+                    $result | ConvertTo-Json -Compress
+                    exit
                 }
             }
         }
     }
-    
-    # No media found - exit cleanly with no output
-    exit 0
 } catch {
-    # Error occurred - exit cleanly with no output  
-    exit 0
+    # Silently fail - no media playing
 }`;
 
         try {
-            // Write script to temp file to avoid command line escaping issues
-            const tempFile = path.join(os.tmpdir(), `audio-detect-${Date.now()}.ps1`);
-            fs.writeFileSync(tempFile, script, 'utf8');
-            
-            // Try PowerShell Core first, then Windows PowerShell
+            // Use execFile to pass arguments directly like Go does (no shell interpretation)
             let stdout: string;
             try {
-                const result = await execAsync(`pwsh.exe -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "${tempFile}"`);
+                const result = await execFileAsync('powershell.exe', ['-Command', script]);
                 stdout = result.stdout;
-            } catch {
-                const result = await execAsync(`powershell.exe -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "${tempFile}"`);
-                stdout = result.stdout;
+            } catch (error) {
+                console.warn('PowerShell execution failed:', error);
+                return null;
             }
             
             let output = stdout.trim();
-            
-            // Clean up temp file
-            try { fs.unlinkSync(tempFile); } catch {}
             
             // Filter out PowerShell banner lines
             const lines = output.split('\n');
@@ -222,8 +253,9 @@ try {
             return {
                 title: result.Title || '',
                 artist: result.Artist || '',
+                album: result.Album || '',
                 source: result.Source || 'Unknown',
-                type: result.Type || 'unknown'
+                type: 'song'
             };
         } catch (error) {
             console.warn('WSL Windows detection failed:', error);
