@@ -11,7 +11,7 @@ Automatically append your currently playing audio to commit messages with zero s
 - **Auto-Enhancement**: Commit messages automatically include your soundtrack
 - **Universal Detection**: Spotify, YouTube Music, Chrome, Edge, Firefox support
 - **WSL2/Windows**: Breakthrough cross-platform audio detection
-- **Fully Configurable**: Customize format, sources, refresh rate, and more
+- **Customizable**: Adjust message format, audio sources, and refresh rate
 
 ## Quick Start
 
