@@ -309,8 +309,172 @@ class MacOSDetector implements AudioDetectorInterface {
     }
 
     async detect(): Promise<MediaInfo | null> {
-        // TODO: Implement macOS Now Playing API integration
-        // This would require native Node.js bindings or AppleScript
+        // First try AppleScript to get Now Playing info
+        const nowPlaying = await this.getNowPlayingInfo();
+        if (nowPlaying) {
+            return nowPlaying;
+        }
+
+        // Fallback to browser window detection
+        return await this.getBrowserMediaInfo();
+    }
+
+    private async getNowPlayingInfo(): Promise<MediaInfo | null> {
+        // Try each app individually to avoid complex AppleScript control flow
+        const apps = [
+            { name: 'Spotify', source: 'Spotify' },
+            { name: 'Music', source: 'Apple Music' },
+            { name: 'iTunes', source: 'iTunes' }
+        ];
+
+        for (const app of apps) {
+            try {
+                // First check if the app is actually playing
+                const playingCmd = `tell application "${app.name}" to player state`;
+                const playingResult = await execAsync(`osascript -e '${playingCmd}'`);
+                const playerState = playingResult.stdout.trim();
+                
+                // Only proceed if the player is actually playing
+                if (playerState === 'playing') {
+                    // Get track info using separate commands to avoid multi-line syntax issues
+                    const titleCmd = `tell application "${app.name}" to name of current track`;
+                    const artistCmd = `tell application "${app.name}" to artist of current track`;
+                    const albumCmd = `tell application "${app.name}" to album of current track`;
+                    
+                    const [titleResult, artistResult, albumResult] = await Promise.all([
+                        execAsync(`osascript -e '${titleCmd}'`).catch(() => ({ stdout: '' })),
+                        execAsync(`osascript -e '${artistCmd}'`).catch(() => ({ stdout: '' })),
+                        execAsync(`osascript -e '${albumCmd}'`).catch(() => ({ stdout: '' }))
+                    ]);
+                    
+                    const title = titleResult.stdout.trim();
+                    const artist = artistResult.stdout.trim();
+                    const album = albumResult.stdout.trim();
+                    
+                    if (title && title !== 'missing value') {
+                        return {
+                            title: title,
+                            artist: artist || '',
+                            album: album || '',
+                            source: app.source,
+                            type: 'song'
+                        };
+                    }
+                }
+            } catch (error) {
+                // App not running or no track playing, continue to next app
+                continue;
+            }
+        }
+
+        return null;
+    }
+
+    private async getBrowserMediaInfo(): Promise<MediaInfo | null> {
+        // Try each browser individually to avoid complex AppleScript control flow
+        const browsers = ['Google Chrome', 'Safari', 'Firefox'];
+
+        for (const browserName of browsers) {
+            try {
+                const script = `tell application "System Events" to tell process "${browserName}" to name of every window`;
+                const { stdout } = await execAsync(`osascript -e '${script}'`);
+                const output = stdout.trim();
+                
+                if (output) {
+                    // Look for YouTube or Music windows
+                    const lines = output.split(', ');
+                    let mediaWindows: Array<{title: string, priority: number}> = [];
+                    
+                    for (const windowTitle of lines) {
+                        if (windowTitle.includes('YouTube') || windowTitle.includes('Music')) {
+                            // Prioritize windows that show audio is playing
+                            let priority = 1;
+                            if (windowTitle.includes('Audio playing')) {
+                                priority = 3; // Highest priority
+                            } else if (windowTitle.includes('YouTube Music')) {
+                                priority = 2; // Medium priority
+                            }
+                            
+                            mediaWindows.push({ title: windowTitle, priority });
+                        }
+                    }
+                    
+                    // Sort by priority (highest first) and process the best match
+                    mediaWindows.sort((a, b) => b.priority - a.priority);
+                    
+                    if (mediaWindows.length > 0) {
+                        const windowTitle = mediaWindows[0].title;
+                        
+                        // Extract song/artist from window title using similar patterns as Windows
+                        let title = windowTitle;
+                        let artist = '';
+                        let source = browserName;
+
+                        // Clean up the window title by removing browser-specific suffixes
+                        let cleanTitle = windowTitle;
+                        // Remove browser suffixes like " - Google Chrome – Kabaji" or " – Audio playing - Google Chrome"
+                        cleanTitle = cleanTitle.replace(/ - Google Chrome.*$/, '');
+                        cleanTitle = cleanTitle.replace(/ – Audio playing.*$/, '');
+                        cleanTitle = cleanTitle.replace(/ - YouTube.*$/, '');
+                        cleanTitle = cleanTitle.replace(/ – YouTube.*$/, '');
+
+                        // YouTube Music pattern: "Song Name - Artist - YouTube Music"
+                        const ytMusicMatch = cleanTitle.match(/(.+) - (.+) - YouTube Music/);
+                        if (ytMusicMatch) {
+                            title = ytMusicMatch[1];
+                            artist = ytMusicMatch[2];
+                            source = 'YouTube Music';
+                        }
+                        // YouTube pattern: "Artist - Song Title (Video) ft. Featured Artists"
+                        else if (cleanTitle.match(/(.+) - (.+) \(Video\)/)) {
+                            const ytMatch = cleanTitle.match(/(.+) - (.+) \(Video\)/);
+                            if (ytMatch) {
+                                artist = ytMatch[1];
+                                let songTitle = ytMatch[2];
+                                
+                                // Handle featured artists in the song title
+                                if (songTitle.includes(' ft. ')) {
+                                    // Keep the main song title, remove the "ft." part for cleaner display
+                                    songTitle = songTitle.split(' ft. ')[0];
+                                }
+                                
+                                title = songTitle;
+                                source = 'YouTube';
+                            }
+                        }
+                        // YouTube pattern: "Artist - Song Title - YouTube"
+                        else if (cleanTitle.match(/(.+) - (.+) - YouTube/)) {
+                            const ytMatch = cleanTitle.match(/(.+) - (.+) - YouTube/);
+                            if (ytMatch) {
+                                artist = ytMatch[1];
+                                title = ytMatch[2];
+                                source = 'YouTube';
+                            }
+                        }
+                        // Generic pattern: "Artist - Song"
+                        else if (cleanTitle.match(/(.+) - (.+)/)) {
+                            const genericMatch = cleanTitle.match(/(.+) - (.+)/);
+                            if (genericMatch) {
+                                artist = genericMatch[1];
+                                title = genericMatch[2];
+                            }
+                        }
+
+                        return {
+                            title: title.trim(),
+                            artist: artist.trim(),
+                            album: '',
+                            source: source,
+                            type: 'song'
+                        };
+                    }
+                }
+            } catch (error) {
+                // Browser not running or no media windows, continue to next browser
+                continue;
+            }
+        }
+
         return null;
     }
 } 
