@@ -405,66 +405,44 @@ class MacOSDetector implements AudioDetectorInterface {
                     if (mediaWindows.length > 0) {
                         const windowTitle = mediaWindows[0].title;
                         
-                        // Extract song/artist from window title using similar patterns as Windows
-                        let title = windowTitle;
+                        // Extract song/artist from window title using a more robust splitting method
+                        let title = '';
                         let artist = '';
                         let source = browserName;
 
-                        // Clean up the window title by removing browser-specific suffixes
-                        let cleanTitle = windowTitle;
-                        // Remove browser suffixes like " - Google Chrome – Kabaji" or " – Audio playing - Google Chrome"
-                        cleanTitle = cleanTitle.replace(/ - Google Chrome.*$/, '');
-                        cleanTitle = cleanTitle.replace(/ – Audio playing.*$/, '');
-                        cleanTitle = cleanTitle.replace(/ - YouTube.*$/, '');
-                        cleanTitle = cleanTitle.replace(/ – YouTube.*$/, '');
+                        // Clean up the window title first
+                        const cleanTitle = windowTitle
+                            .replace(/– Audio playing.*$/, '')  // Note: this is an en-dash
+                            .replace(/- Google Chrome.*$/, '')
+                            .replace(/- YouTube.*$/, '')
+                            .trim();
 
-                        // YouTube Music pattern: "Song Name - Artist - YouTube Music"
-                        const ytMusicMatch = cleanTitle.match(/(.+) - (.+) - YouTube Music/);
-                        if (ytMusicMatch) {
-                            title = ytMusicMatch[1];
-                            artist = ytMusicMatch[2];
-                            source = 'YouTube Music';
+                        const parts = cleanTitle.split(' - ');
+                        
+                        if (parts.length >= 2) {
+                            // The last part is the title, everything before is the artist(s).
+                            title = parts.pop()?.trim() || '';
+                            artist = parts.join(' - ').trim();
+                        } else {
+                            // If no hyphen, the whole thing is the title.
+                            title = cleanTitle;
+                            artist = 'Unknown';
                         }
-                        // YouTube pattern: "Artist - Song Title (Video) ft. Featured Artists"
-                        else if (cleanTitle.match(/(.+) - (.+) \(Video\)/)) {
-                            const ytMatch = cleanTitle.match(/(.+) - (.+) \(Video\)/);
-                            if (ytMatch) {
-                                artist = ytMatch[1];
-                                let songTitle = ytMatch[2];
-                                
-                                // Handle featured artists in the song title
-                                if (songTitle.includes(' ft. ')) {
-                                    // Keep the main song title, remove the "ft." part for cleaner display
-                                    songTitle = songTitle.split(' ft. ')[0];
-                                }
-                                
-                                title = songTitle;
-                                source = 'YouTube';
-                            }
-                        }
-                        // YouTube pattern: "Artist - Song Title - YouTube"
-                        else if (cleanTitle.match(/(.+) - (.+) - YouTube/)) {
-                            const ytMatch = cleanTitle.match(/(.+) - (.+) - YouTube/);
-                            if (ytMatch) {
-                                artist = ytMatch[1];
-                                title = ytMatch[2];
-                                source = 'YouTube';
-                            }
-                        }
-                        // Generic pattern: "Artist - Song"
-                        else if (cleanTitle.match(/(.+) - (.+)/)) {
-                            const genericMatch = cleanTitle.match(/(.+) - (.+)/);
-                            if (genericMatch) {
-                                artist = genericMatch[1];
-                                title = genericMatch[2];
-                            }
-                        }
+                        
+                        // Final cleanup on title to remove extras like (Video), ft. etc.
+                        title = title
+                            .replace(/\(official music video\)/i, '')
+                            .replace(/\((?:official )?video\)/i, '')
+                            .replace(/\((?:official )?audio\)/i, '')
+                            .replace(/\(?ft\..*/i, '')
+                            .replace(/\(?feat\..*/i, '')
+                            .trim();
 
                         return {
-                            title: title.trim(),
-                            artist: artist.trim(),
+                            title: title,
+                            artist: artist,
                             album: '',
-                            source: source,
+                            source: 'YouTube', // Assume YouTube if we get this far
                             type: 'song'
                         };
                     }
@@ -477,4 +455,4 @@ class MacOSDetector implements AudioDetectorInterface {
 
         return null;
     }
-} 
+}

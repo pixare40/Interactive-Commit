@@ -41,7 +41,7 @@ func (m *MPRISDetector) IsAvailable() bool {
 	if runtime.GOOS != "linux" {
 		return false
 	}
-	
+
 	// Check if playerctl is installed
 	_, err := exec.LookPath("playerctl")
 	return err == nil
@@ -53,20 +53,20 @@ func (m *MPRISDetector) Detect(ctx context.Context) (*MediaInfo, error) {
 	if err != nil {
 		return nil, err
 	}
-	
+
 	if title == "" {
 		return nil, nil // No media playing
 	}
-	
+
 	artist, _ := m.getPlayerctlMetadata(ctx, "artist")
 	album, _ := m.getPlayerctlMetadata(ctx, "album")
-	
+
 	// Try to determine the source player
 	source, _ := m.getActivePlayer(ctx)
 	if source == "" {
 		source = "Unknown"
 	}
-	
+
 	return &MediaInfo{
 		Title:  title,
 		Artist: artist,
@@ -82,7 +82,7 @@ func (m *MPRISDetector) getPlayerctlMetadata(ctx context.Context, key string) (s
 	if err != nil {
 		return "", err
 	}
-	
+
 	return strings.TrimSpace(string(output)), nil
 }
 
@@ -92,7 +92,7 @@ func (m *MPRISDetector) getActivePlayer(ctx context.Context) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	
+
 	players := strings.Split(strings.TrimSpace(string(output)), "\n")
 	if len(players) > 0 && players[0] != "" {
 		// Return the first active player, clean up the name
@@ -103,7 +103,7 @@ func (m *MPRISDetector) getActivePlayer(ctx context.Context) (string, error) {
 		}
 		return strings.ToUpper(player[:1]) + strings.ToLower(player[1:]), nil
 	}
-	
+
 	return "", nil
 }
 
@@ -119,7 +119,7 @@ func (w *WSLWindowsDetector) IsAvailable() bool {
 	if !w.isWSL() {
 		return false
 	}
-	
+
 	// Check if we can access PowerShell
 	_, err := exec.LookPath("powershell.exe")
 	return err == nil
@@ -133,7 +133,7 @@ func (w *WSLWindowsDetector) isWSL() bool {
 			return true
 		}
 	}
-	
+
 	// Check WSL environment variable
 	return os.Getenv("WSL_DISTRO_NAME") != ""
 }
@@ -246,7 +246,7 @@ try {
     # Silently fail - no media playing
 }
 `
-	
+
 	// Execute PowerShell script
 	cmd := exec.CommandContext(ctx, "powershell.exe", "-Command", scriptText)
 	output, err := cmd.Output()
@@ -257,13 +257,12 @@ try {
 		}
 		return nil, fmt.Errorf("failed to query Windows Media Session: %w", err)
 	}
-	
+
 	outputStr := strings.TrimSpace(string(output))
 	if outputStr == "" {
 		return nil, nil // No media playing
 	}
 
-	
 	// Parse JSON response
 	var result struct {
 		Title  string `json:"Title"`
@@ -271,14 +270,14 @@ try {
 		Album  string `json:"Album"`
 		Source string `json:"Source"`
 	}
-	
+
 	if err := json.Unmarshal([]byte(outputStr), &result); err != nil {
 		return nil, fmt.Errorf("failed to parse media session data: %w", err)
 	}
-	
+
 	// Clean up source name
 	source := w.cleanSourceName(result.Source)
-	
+
 	return &MediaInfo{
 		Title:  result.Title,
 		Artist: result.Artist,
@@ -291,21 +290,21 @@ try {
 func (w *WSLWindowsDetector) cleanSourceName(appId string) string {
 	// Convert Windows app IDs to friendly names
 	appMappings := map[string]string{
-		"Spotify.exe":                    "Spotify",
-		"msedge.exe":                    "Microsoft Edge",
-		"chrome.exe":                    "Google Chrome",
-		"firefox.exe":                   "Firefox", 
-		"vlc.exe":                       "VLC",
-		"Microsoft.ZuneMusic":           "Groove Music",
+		"Spotify.exe":                  "Spotify",
+		"msedge.exe":                   "Microsoft Edge",
+		"chrome.exe":                   "Google Chrome",
+		"firefox.exe":                  "Firefox",
+		"vlc.exe":                      "VLC",
+		"Microsoft.ZuneMusic":          "Groove Music",
 		"Microsoft.WindowsMediaPlayer": "Windows Media Player",
-		"YouTubeMusic":                  "YouTube Music",
+		"YouTubeMusic":                 "YouTube Music",
 	}
-	
+
 	// Direct mapping
 	if friendly, exists := appMappings[appId]; exists {
 		return friendly
 	}
-	
+
 	// Extract from app ID patterns
 	if strings.Contains(strings.ToLower(appId), "spotify") {
 		return "Spotify"
@@ -319,12 +318,12 @@ func (w *WSLWindowsDetector) cleanSourceName(appId string) string {
 	if strings.Contains(strings.ToLower(appId), "youtube") {
 		return "YouTube Music"
 	}
-	
+
 	// Clean up generic patterns
 	if strings.HasSuffix(appId, ".exe") {
 		return strings.TrimSuffix(appId, ".exe")
 	}
-	
+
 	// Handle Windows Store app format
 	if strings.Contains(appId, "!") {
 		parts := strings.Split(appId, "!")
@@ -332,7 +331,7 @@ func (w *WSLWindowsDetector) cleanSourceName(appId string) string {
 			return strings.Title(strings.ToLower(parts[0]))
 		}
 	}
-	
+
 	return appId
 }
 
@@ -340,24 +339,268 @@ func (w *WSLWindowsDetector) determineMediaType(title, source string) string {
 	// Basic media type detection based on source and title patterns
 	source = strings.ToLower(source)
 	title = strings.ToLower(title)
-	
+
 	// Podcast indicators
-	if strings.Contains(source, "podcast") || 
-	   strings.Contains(title, "episode") ||
-	   strings.Contains(title, "podcast") {
+	if strings.Contains(source, "podcast") ||
+		strings.Contains(title, "episode") ||
+		strings.Contains(title, "podcast") {
 		return "podcast"
 	}
-	
-	// Video indicators  
+
+	// Video indicators
 	if strings.Contains(source, "youtube") ||
-	   strings.Contains(source, "edge") ||
-	   strings.Contains(source, "chrome") ||
-	   strings.Contains(source, "firefox") {
+		strings.Contains(source, "edge") ||
+		strings.Contains(source, "chrome") ||
+		strings.Contains(source, "firefox") {
 		return "video"
 	}
-	
+
 	// Default to song
 	return "song"
+}
+
+// MacOSDetector detects audio on macOS using AppleScript
+type MacOSDetector struct{}
+
+func (m *MacOSDetector) Name() string {
+	return "macOS AppleScript"
+}
+
+func (m *MacOSDetector) IsAvailable() bool {
+	// Only available on macOS
+	if runtime.GOOS != "darwin" {
+		return false
+	}
+
+	// Check if osascript is available
+	_, err := exec.LookPath("osascript")
+	return err == nil
+}
+
+func (m *MacOSDetector) Detect(ctx context.Context) (*MediaInfo, error) {
+	// Try music apps first (they're more reliable)
+	media, err := m.detectMusicApps(ctx)
+	if err == nil && media != nil {
+		return media, nil
+	}
+
+	// Fallback to browser detection
+	return m.detectBrowserMedia(ctx)
+}
+
+func (m *MacOSDetector) detectMusicApps(ctx context.Context) (*MediaInfo, error) {
+	apps := []struct {
+		name   string
+		source string
+	}{
+		{"Spotify", "Spotify"},
+		{"Music", "Apple Music"},
+		{"iTunes", "iTunes"},
+	}
+
+	for _, app := range apps {
+		// First check if the app is actually playing
+		playerStateCmd := fmt.Sprintf(`tell application "%s" to player state`, app.name)
+		cmd := exec.CommandContext(ctx, "osascript", "-e", playerStateCmd)
+		output, err := cmd.Output()
+		if err != nil {
+			continue // App not running or accessible
+		}
+
+		playerState := strings.TrimSpace(string(output))
+		if playerState != "playing" {
+			continue // Not currently playing
+		}
+
+		// Get track info
+		titleCmd := fmt.Sprintf(`tell application "%s" to name of current track`, app.name)
+		artistCmd := fmt.Sprintf(`tell application "%s" to artist of current track`, app.name)
+		albumCmd := fmt.Sprintf(`tell application "%s" to album of current track`, app.name)
+
+		titleResult, titleErr := exec.CommandContext(ctx, "osascript", "-e", titleCmd).Output()
+		artistResult, artistErr := exec.CommandContext(ctx, "osascript", "-e", artistCmd).Output()
+		albumResult, albumErr := exec.CommandContext(ctx, "osascript", "-e", albumCmd).Output()
+
+		if titleErr != nil {
+			continue
+		}
+
+		title := strings.TrimSpace(string(titleResult))
+		if title == "" || title == "missing value" {
+			continue
+		}
+
+		artist := ""
+		if artistErr == nil {
+			artist = strings.TrimSpace(string(artistResult))
+			if artist == "missing value" {
+				artist = ""
+			}
+		}
+
+		album := ""
+		if albumErr == nil {
+			album = strings.TrimSpace(string(albumResult))
+			if album == "missing value" {
+				album = ""
+			}
+		}
+
+		return &MediaInfo{
+			Title:  title,
+			Artist: artist,
+			Album:  album,
+			Source: app.source,
+			Type:   "song",
+		}, nil
+	}
+
+	return nil, nil
+}
+
+func (m *MacOSDetector) detectBrowserMedia(ctx context.Context) (*MediaInfo, error) {
+	browsers := []string{"Google Chrome", "Safari", "Firefox"}
+
+	for _, browserName := range browsers {
+		script := fmt.Sprintf(`tell application "System Events" to tell process "%s" to name of every window`, browserName)
+		cmd := exec.CommandContext(ctx, "osascript", "-e", script)
+		output, err := cmd.Output()
+		if err != nil {
+			continue // Browser not running
+		}
+
+		windowTitles := strings.TrimSpace(string(output))
+		if windowTitles == "" {
+			continue
+		}
+
+		// Look for media windows with priority
+		mediaWindows := m.findMediaWindows(windowTitles)
+		if len(mediaWindows) == 0 {
+			continue
+		}
+
+		// Parse the best media window
+		title, artist := m.parseMediaTitle(mediaWindows[0])
+
+		return &MediaInfo{
+			Title:  title,
+			Artist: artist,
+			Album:  "",
+			Source: "YouTube",
+			Type:   "video",
+		}, nil
+	}
+
+	return nil, nil
+}
+
+func (m *MacOSDetector) findMediaWindows(windowTitles string) []string {
+	lines := strings.Split(windowTitles, ", ")
+	var mediaWindows []string
+
+	// Prioritize windows with "Audio playing" indicator
+	var priorityWindows []string
+	var regularWindows []string
+
+	for _, windowTitle := range lines {
+		if strings.Contains(windowTitle, "YouTube") || strings.Contains(windowTitle, "Music") {
+			if strings.Contains(windowTitle, "Audio playing") {
+				priorityWindows = append(priorityWindows, windowTitle)
+			} else {
+				regularWindows = append(regularWindows, windowTitle)
+			}
+		}
+	}
+
+	// Return priority windows first, then regular ones
+	mediaWindows = append(mediaWindows, priorityWindows...)
+	mediaWindows = append(mediaWindows, regularWindows...)
+
+	return mediaWindows
+}
+
+func (m *MacOSDetector) parseMediaTitle(windowTitle string) (title, artist string) {
+	// Clean up the window title first
+	cleanTitle := windowTitle
+	cleanTitle = strings.ReplaceAll(cleanTitle, "– Audio playing", "")
+	cleanTitle = strings.ReplaceAll(cleanTitle, "- Google Chrome", "")
+	cleanTitle = strings.ReplaceAll(cleanTitle, "- YouTube", "")
+	// Remove user indicators like "– Kabaji"
+	if strings.Contains(cleanTitle, "–") {
+		parts := strings.Split(cleanTitle, "–")
+		if len(parts) > 1 {
+			cleanTitle = strings.TrimSpace(parts[0])
+		}
+	}
+	cleanTitle = strings.TrimSpace(cleanTitle)
+
+	// Split by " - " to separate artist and title
+	parts := strings.Split(cleanTitle, " - ")
+
+	if len(parts) >= 2 {
+		// The last part is the title, everything before is the artist(s)
+		title = strings.TrimSpace(parts[len(parts)-1])
+		artist = strings.TrimSpace(strings.Join(parts[:len(parts)-1], " - "))
+	} else {
+		// If no hyphen, the whole thing is the title
+		title = cleanTitle
+		artist = "Unknown"
+	}
+
+	// Final cleanup on title to remove extras
+	title = m.cleanupTitle(title)
+
+	return title, artist
+}
+
+func (m *MacOSDetector) cleanupTitle(title string) string {
+	// Remove common video/audio indicators using simple string replacements
+	titleLower := strings.ToLower(title)
+
+	// Remove featured artists
+	if strings.Contains(titleLower, "ft.") {
+		parts := strings.Split(title, "ft.")
+		if len(parts) > 0 {
+			title = strings.TrimSpace(parts[0])
+		}
+	}
+	if strings.Contains(titleLower, "feat.") {
+		parts := strings.Split(title, "feat.")
+		if len(parts) > 0 {
+			title = strings.TrimSpace(parts[0])
+		}
+	}
+
+	// Remove video indicators (case insensitive)
+	videoPatterns := []string{
+		"(Official Video)",
+		"(official video)",
+		"(Video)",
+		"(video)",
+		"(Official Music Video)",
+		"(official music video)",
+		"(Music Video)",
+		"(music video)",
+	}
+
+	for _, pattern := range videoPatterns {
+		title = strings.ReplaceAll(title, pattern, "")
+	}
+
+	// Remove audio indicators (case insensitive)
+	audioPatterns := []string{
+		"(Official Audio)",
+		"(official audio)",
+		"(Audio)",
+		"(audio)",
+	}
+
+	for _, pattern := range audioPatterns {
+		title = strings.ReplaceAll(title, pattern, "")
+	}
+
+	return strings.TrimSpace(title)
 }
 
 // AudioManager orchestrates multiple detectors
@@ -368,10 +611,10 @@ type AudioManager struct {
 // NewAudioManager creates a new audio manager with platform-specific detectors
 func NewAudioManager() *AudioManager {
 	am := &AudioManager{}
-	
+
 	// Add detectors based on platform
 	am.addDetectors()
-	
+
 	return am
 }
 
@@ -379,9 +622,10 @@ func NewAudioManager() *AudioManager {
 func (am *AudioManager) addDetectors() {
 	// TODO: Add platform detection
 	// For now, add all detectors and let them self-disable if unavailable
-	
+
 	am.detectors = append(am.detectors, &MPRISDetector{})
 	am.detectors = append(am.detectors, &WSLWindowsDetector{})
+	am.detectors = append(am.detectors, &MacOSDetector{})
 }
 
 // Detect tries all available detectors and returns the first successful result
@@ -390,13 +634,13 @@ func (am *AudioManager) Detect(ctx context.Context) (*MediaInfo, error) {
 		if !detector.IsAvailable() {
 			continue
 		}
-		
+
 		media, err := detector.Detect(ctx)
 		if err == nil && media != nil {
 			return media, nil
 		}
 	}
-	
+
 	return nil, fmt.Errorf("no audio detected from any source")
 }
 
@@ -409,4 +653,4 @@ func (am *AudioManager) ListDetectors() []Detector {
 		}
 	}
 	return available
-} 
+}
