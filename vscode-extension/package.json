@@ -28,7 +28,7 @@
     "commands": [
       {
         "command": "interactive-commit.detectAudio",
-        "title": "🎵 Detect Currently Playing Audio",
+        "title": "$(music) Detect Currently Playing Audio",
         "category": "Interactive Commit"
       },
       {
@@ -39,6 +39,21 @@
       {
         "command": "interactive-commit.openSettings",
         "title": "Open Settings",
+        "category": "Interactive Commit"
+      },
+      {
+        "command": "interactive-commit.nextTrack",
+        "title": "$(chevron-right) Next Track",
+        "category": "Interactive Commit"
+      },
+      {
+        "command": "interactive-commit.previousTrack",
+        "title": "$(chevron-left) Previous Track",
+        "category": "Interactive Commit"
+      },
+      {
+        "command": "interactive-commit.playPause",
+        "title": "$(debug-pause) Play/Pause",
         "category": "Interactive Commit"
       }
     ],
@@ -79,7 +94,7 @@
         },
         "interactive-commit.commitFormat": {
           "type": "string",
-          "default": "🎵 Currently playing: \"{title}\" by {artist} ({source})",
+          "default": "$(music) Currently playing: \"{title}\" by {artist} ({source})",
           "description": "Format template for commit message audio line"
         },
         "interactive-commit.refreshInterval": {
@@ -94,14 +109,31 @@
         }
       }
     },
-    "menus": {
-      "commandPalette": [
+          "keybindings": [
         {
-          "command": "interactive-commit.detectAudio",
-          "when": "true"
+          "command": "interactive-commit.nextTrack",
+          "key": "ctrl+alt+right",
+          "mac": "cmd+alt+right"
+        },
+        {
+          "command": "interactive-commit.previousTrack",
+          "key": "ctrl+alt+left",
+          "mac": "cmd+alt+left"
+        },
+        {
+          "command": "interactive-commit.playPause",
+          "key": "ctrl+alt+space",
+          "mac": "cmd+alt+space"
         }
-      ]
-    }
+      ],
+      "menus": {
+        "commandPalette": [
+          {
+            "command": "interactive-commit.detectAudio",
+            "when": "true"
+          }
+        ]
+      }
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
