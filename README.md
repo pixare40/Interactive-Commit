@@ -2,7 +2,7 @@
 
 **Transform your git commits with the soundtrack of your code**
 
-Interactive-Commit is a git hook that automatically appends your currently playing audio to commit messages, creating a rich narrative of your development journey. **Working solution for WSL2/Windows environments.**
+Interactive-Commit is a git hook that automatically appends your currently playing audio to commit messages, creating a rich narrative of your development journey. **Working solution for WSL2/Windows, Linux, and macOS environments.**
 
 https://github.com/user-attachments/assets/68d1fdcf-912b-4f60-a9b5-76ed94cf1d0e
 
@@ -44,6 +44,7 @@ git add . && git commit -m "fix: resolve authentication bug"
                     │ • Window Titles  │
                     │ • MPRIS/D-Bus    │
                     │ • PowerShell API │
+                    │ • AppleScript    │
                     └──────────────────┘
 ```
 
@@ -56,6 +57,8 @@ git add . && git commit -m "fix: resolve authentication bug"
 | WSL2 | Windows Spotify | Window Title Parsing | **Working** |
 | WSL2 | Windows Browsers | Window Title Parsing | **Working** |
 | Linux Native | MPRIS/D-Bus | `playerctl` | **Working** |
+| macOS | Spotify/Apple Music/iTunes | AppleScript Player State | **Working** |
+| macOS | Browser Media | AppleScript Window Titles | **Working** |
 
 ### WSL2/Windows Integration
 
@@ -65,6 +68,16 @@ git add . && git commit -m "fix: resolve authentication bug"
 1. **Window Title Bridge**: PowerShell queries Windows process window titles from WSL2
 2. **Smart Pattern Matching**: Intelligent parsing of Spotify, YouTube Music, and browser titles
 3. **Cross-Platform Communication**: Seamless WSL2 ↔ Windows process interaction
+
+### macOS Integration
+
+**The Solution**: Native AppleScript integration for comprehensive audio detection.
+
+**Implementation**: 
+1. **Player State Detection**: AppleScript queries actual playback state (playing/paused/stopped)
+2. **Direct API Access**: Native access to Spotify, Apple Music, and iTunes metadata
+3. **Browser Window Monitoring**: Intelligent parsing of browser window titles with priority for "Audio playing" indicators
+4. **Smart Prioritization**: Prioritizes actively playing apps over paused ones
 
 **Example Detection Patterns:**
 - **Spotify**: `"Artist - Song Title"` → Parsed to structured data
@@ -78,6 +91,7 @@ git add . && git commit -m "fix: resolve authentication bug"
 - Git 2.9+
 - For WSL2: PowerShell accessible via `powershell.exe`
 - For Linux: Optional `playerctl` for MPRIS support
+- For macOS: `osascript` (included with macOS) for AppleScript detection
 
 ### Install from Source
 ```bash
@@ -122,7 +136,7 @@ interactive-commit detect
 | **Global** | `--global` | All repositories | Default recommendation |
 
 **Global Installation Details:**
-- Creates hooks in `~/.config/git/hooks/` (Linux/WSL2)
+- Creates hooks in `~/.config/git/hooks/` (Linux/WSL2/macOS)
 - Configures Git's `core.hooksPath` globally 
 - Works automatically in ALL repositories
 - To disable: `git config --global --unset core.hooksPath`
