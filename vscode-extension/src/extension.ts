@@ -61,10 +61,10 @@ async function detectAudio() {
         const media = await audioDetector.detectCurrentAudio();
         
         if (media) {
-            const message = `$(music) Currently playing: "${media.title}" by ${media.artist} (${media.source})`;
+            const message = `♪ Currently playing: "${media.title}" by ${media.artist} (${media.source})`;
             vscode.window.showInformationMessage(message);
         } else {
-            vscode.window.showInformationMessage('$(mute) No audio currently detected');
+            vscode.window.showInformationMessage('🔇 No audio currently detected');
         }
     } catch (error) {
         console.error('Audio detection error:', error);
@@ -89,9 +89,9 @@ async function nextTrack() {
     try {
         const success = await audioDetector.nextTrack();
         if (success) {
-            vscode.window.showInformationMessage('$(chevron-right) Next track');
+            vscode.window.showInformationMessage('⏭ Next track');
         } else {
-            vscode.window.showWarningMessage('$(warning) Could not skip to next track');
+            vscode.window.showWarningMessage('⚠ Could not skip to next track');
         }
     } catch (error) {
         console.error('Next track error:', error);
@@ -103,9 +103,9 @@ async function previousTrack() {
     try {
         const success = await audioDetector.previousTrack();
         if (success) {
-            vscode.window.showInformationMessage('$(chevron-left) Previous track');
+            vscode.window.showInformationMessage('⏮ Previous track');
         } else {
-            vscode.window.showWarningMessage('$(warning) Could not go to previous track');
+            vscode.window.showWarningMessage('⚠ Could not go to previous track');
         }
     } catch (error) {
         console.error('Previous track error:', error);
@@ -117,9 +117,9 @@ async function playPause() {
     try {
         const success = await audioDetector.playPause();
         if (success) {
-            vscode.window.showInformationMessage('$(debug-pause) Play/Pause toggled');
+            vscode.window.showInformationMessage('⏯ Play/Pause toggled');
         } else {
-            vscode.window.showWarningMessage('$(warning) Could not toggle play/pause');
+            vscode.window.showWarningMessage('⚠ Could not toggle play/pause');
         }
     } catch (error) {
         console.error('Play/pause error:', error);
@@ -128,7 +128,7 @@ async function playPause() {
 }
 
 function showWelcomeMessage() {
-    const message = '$(music) Interactive Commit is ready! Your commits will now include your soundtrack.';
+    const message = '♪ Interactive Commit is ready! Your commits will now include your soundtrack.';
     const openSettingsText = 'Open Settings';
     const testDetectionText = 'Test Detection';
     
