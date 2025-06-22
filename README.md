@@ -5,6 +5,8 @@
 Interactive-Commit is a git hook that automatically appends your currently playing audio to commit messages, creating a rich narrative of your development journey. **Working solution for WSL2/Windows, Linux, and macOS environments.**
 
 https://github.com/user-attachments/assets/68d1fdcf-912b-4f60-a9b5-76ed94cf1d0e
+VSCode Extension
+<img width="487" alt="Screenshot 2025-06-22 at 20 22 03" src="https://github.com/user-attachments/assets/e1522029-2f22-455a-bc33-888e3f3b0aca" />
 
 ## Quick Start
 
