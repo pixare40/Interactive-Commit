@@ -1,6 +1,8 @@
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import * as os from 'os';
+import * as fs from 'fs';
+import * as path from 'path';
 import { ConfigManager } from './configManager';
 
 const execAsync = promisify(exec);
@@ -92,16 +94,26 @@ class WSLWindowsDetector implements AudioDetectorInterface {
 
     async isAvailable(): Promise<boolean> {
         try {
-            // Check if PowerShell is accessible
-            await execAsync('powershell.exe -Command "Write-Host test"');
+            // Try PowerShell Core first (pwsh.exe), then Windows PowerShell (powershell.exe)
+            await execAsync('pwsh.exe -NoLogo -Command "Write-Host test"');
             return true;
         } catch {
-            return false;
+            try {
+                await execAsync('powershell.exe -NoLogo -Command "Write-Host test"');
+                return true;
+            } catch {
+                return false;
+            }
         }
     }
 
     async detect(): Promise<MediaInfo | null> {
         const script = `
+# Suppress progress bars and verbose output
+$ProgressPreference = 'SilentlyContinue'
+$VerbosePreference = 'SilentlyContinue'
+$WarningPreference = 'SilentlyContinue'
+
 try {
     # Check Spotify
     $spotify = Get-Process -Name 'Spotify' -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowTitle -and $_.MainWindowTitle -ne 'Spotify' }
@@ -111,8 +123,8 @@ try {
             $artist = $matches[1]
             $song = $matches[2]
             $result = @{ Title = $song; Artist = $artist; Source = 'Spotify'; Type = 'song' }
-            $result | ConvertTo-Json -Compress
-            exit
+            Write-Output ($result | ConvertTo-Json -Compress)
+            exit 0
         }
     }
     
@@ -135,8 +147,8 @@ try {
                     $song = $matches[1]
                     $artist = $matches[2]
                     $result = @{ Title = $song; Artist = $artist; Source = 'YouTube Music'; Type = 'song' }
-                    $result | ConvertTo-Json -Compress
-                    exit
+                    Write-Output ($result | ConvertTo-Json -Compress)
+                    exit 0
                 }
                 
                 # Regular YouTube pattern
@@ -146,28 +158,67 @@ try {
                     $song = $song.Trim()
                     if ($song -eq '') { $song = $matches[2] }
                     $result = @{ Title = $song; Artist = $artist; Source = 'YouTube'; Type = 'video' }
-                    $result | ConvertTo-Json -Compress
-                    exit
+                    Write-Output ($result | ConvertTo-Json -Compress)
+                    exit 0
                 }
             }
         }
     }
     
-    # No media found
-    Write-Host ""
+    # No media found - exit cleanly with no output
+    exit 0
 } catch {
-    Write-Host ""
+    # Error occurred - exit cleanly with no output  
+    exit 0
 }`;
 
         try {
-            const { stdout } = await execAsync(`powershell.exe -Command "${script.replace(/"/g, '`"')}"`);
-            const output = stdout.trim();
+            // Write script to temp file to avoid command line escaping issues
+            const tempFile = path.join(os.tmpdir(), `audio-detect-${Date.now()}.ps1`);
+            fs.writeFileSync(tempFile, script, 'utf8');
+            
+            // Try PowerShell Core first, then Windows PowerShell
+            let stdout: string;
+            try {
+                const result = await execAsync(`pwsh.exe -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "${tempFile}"`);
+                stdout = result.stdout;
+            } catch {
+                const result = await execAsync(`powershell.exe -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "${tempFile}"`);
+                stdout = result.stdout;
+            }
+            
+            let output = stdout.trim();
+            
+            // Clean up temp file
+            try { fs.unlinkSync(tempFile); } catch {}
+            
+            // Filter out PowerShell banner lines
+            const lines = output.split('\n');
+            const filteredLines = lines.filter(line => {
+                const trimmed = line.trim();
+                return !trimmed.includes('Windows PowerShell') &&
+                       !trimmed.includes('Copyright (C) Microsoft Corporation') &&
+                       !trimmed.includes('Install the latest PowerShell') &&
+                       !trimmed.includes('https://aka.ms/PSWindows') &&
+                       !trimmed.startsWith('PS ') &&
+                       trimmed !== '';
+            });
+            
+            output = filteredLines.join('\n').trim();
             
             if (!output) {
                 return null;
             }
             
-            const result = JSON.parse(output);
+            // Validate JSON before parsing
+            let result;
+            try {
+                result = JSON.parse(output);
+            } catch (jsonError) {
+                console.warn('PowerShell output is not valid JSON:', output);
+                return null;
+            }
+            
             return {
                 title: result.Title || '',
                 artist: result.Artist || '',

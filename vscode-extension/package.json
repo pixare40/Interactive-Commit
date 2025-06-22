@@ -57,11 +57,24 @@
         },
         "interactive-commit.audioSources": {
           "type": "array",
-          "default": ["spotify", "youtube", "youtube-music", "chrome", "edge"],
+          "default": [
+            "spotify",
+            "youtube",
+            "youtube-music",
+            "chrome",
+            "edge"
+          ],
           "description": "Audio sources to detect from",
           "items": {
             "type": "string",
-            "enum": ["spotify", "youtube", "youtube-music", "chrome", "edge", "firefox"]
+            "enum": [
+              "spotify",
+              "youtube",
+              "youtube-music",
+              "chrome",
+              "edge",
+              "firefox"
+            ]
           }
         },
         "interactive-commit.commitFormat": {
@@ -102,7 +115,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/pixare40/interactive-commit.git"
+    "url": "git+https://github.com/pixare40/interactive-commit.git"
   },
   "bugs": {
     "url": "https://github.com/pixare40/interactive-commit/issues"
@@ -113,5 +126,6 @@
   "galleryBanner": {
     "color": "#1DB954",
     "theme": "dark"
-  }
-} 
+  },
+  "author": ""
+}

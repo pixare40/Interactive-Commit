@@ -84,14 +84,14 @@ function openSettings() {
 
 function showWelcomeMessage() {
     const message = '🎵 Interactive Commit is ready! Your commits will now include your soundtrack.';
-    const openSettings = 'Open Settings';
-    const testDetection = 'Test Detection';
+    const openSettingsText = 'Open Settings';
+    const testDetectionText = 'Test Detection';
     
-    vscode.window.showInformationMessage(message, openSettings, testDetection)
+    vscode.window.showInformationMessage(message, openSettingsText, testDetectionText)
         .then(selection => {
-            if (selection === openSettings) {
+            if (selection === openSettingsText) {
                 openSettings();
-            } else if (selection === testDetection) {
+            } else if (selection === testDetectionText) {
                 detectAudio();
             }
         });
