@@ -48,28 +48,59 @@ export class GitIntegration {
     }
 
     private registerCommitCommand() {
-        // Intercept git commit commands
-        const commands = [
-            'git.commit',
-            'git.commitStaged',
-            'git.commitAll'
-        ];
-
-        commands.forEach(commandId => {
-            const disposable = vscode.commands.registerCommand(
-                `interactive-commit.${commandId}`,
-                async (...args) => {
-                    if (this.config.isEnabled()) {
-                        await this.enhanceCommitWithAudio();
-                    }
-                    
-                    // Execute original command
-                    return vscode.commands.executeCommand(commandId, ...args);
-                }
-            );
-
-            this.disposables.push(disposable);
+        // Instead of intercepting git commands (which is complex and can break functionality),
+        // we'll monitor the Source Control input and enhance it in real-time
+        // The git hook remains the primary mechanism for commit enhancement
+        
+        // Set up a timer to periodically check and enhance the commit message
+        const checkInterval = setInterval(async () => {
+            if (this.config.isEnabled()) {
+                await this.enhanceSourceControlInput();
+            }
+        }, 2000); // Check every 2 seconds
+        
+        // Clean up interval on disposal
+        this.disposables.push({
+            dispose: () => {
+                clearInterval(checkInterval);
+            }
         });
+    }
+
+    private async enhanceSourceControlInput() {
+        try {
+            // Get Git repositories through the Git extension API
+            const gitExtension = vscode.extensions.getExtension('vscode.git');
+            if (!gitExtension?.isActive) {
+                return;
+            }
+
+            const git = gitExtension.exports.getAPI(1);
+            const repositories = git.repositories;
+            
+            for (const repo of repositories) {
+                if (repo.inputBox) {
+                    const currentMessage = repo.inputBox.value;
+                    
+                    // Only enhance if there's a message and it doesn't already have audio info
+                    if (currentMessage && 
+                        currentMessage.trim() !== '' && 
+                        !currentMessage.includes('🎵') &&
+                        !currentMessage.includes('Currently playing:')) {
+                        
+                        const audioInfo = await this.audioDetector.detectCurrentAudio();
+                        if (audioInfo) {
+                            const enhancement = this.formatCommitMessage(audioInfo);
+                            
+                            // Add the audio info to the commit message
+                            repo.inputBox.value = currentMessage + '\n\n' + enhancement;
+                        }
+                    }
+                }
+            }
+        } catch (error) {
+            console.warn('Failed to enhance Source Control input:', error);
+        }
     }
 
     private async enhanceCommitMessage(editor: vscode.TextEditor) {
@@ -116,40 +147,16 @@ export class GitIntegration {
         }
     }
 
-    private async enhanceCommitWithAudio() {
-        try {
-            const media = await this.audioDetector.detectCurrentAudio();
-            if (!media) {
-                return;
-            }
-
-            // Get the SCM input box and append audio info
-            const gitExtension = vscode.extensions.getExtension('vscode.git');
-            if (!gitExtension?.isActive) {
-                return;
-            }
-
-            const git = gitExtension.exports.getAPI(1);
-            const repositories = git.repositories;
-
-            if (repositories.length === 0) {
-                return;
-            }
-
-            const repo = repositories[0];
-            const inputBox = repo.inputBox;
-            
-            if (!inputBox.value.includes('🎵 Currently playing:')) {
-                const audioLine = this.formatAudioLine(media);
-                inputBox.value = inputBox.value.trimEnd() + '\n\n' + audioLine;
-            }
-
-        } catch (error) {
-            console.error('Failed to enhance commit with audio:', error);
-        }
+    private formatAudioLine(media: { title: string; artist: string; source: string }): string {
+        const template = this.config.getCommitFormat();
+        
+        return template
+            .replace('{title}', media.title)
+            .replace('{artist}', media.artist)
+            .replace('{source}', media.source);
     }
 
-    private formatAudioLine(media: { title: string; artist: string; source: string }): string {
+    private formatCommitMessage(media: { title: string; artist: string; source: string }): string {
         const template = this.config.getCommitFormat();
         
         return template
