@@ -1,0 +1,131 @@
+{
+  "name": "interactive-commit",
+  "displayName": "Interactive Commit - Soundtrack Your Code",
+  "description": "Automatically append currently playing audio to your git commits. Works with Spotify, YouTube Music, and more!",
+  "version": "1.0.0",
+  "publisher": "pixare40",
+  "engines": {
+    "vscode": "^1.74.0"
+  },
+  "categories": [
+    "Other",
+    "SCM Providers"
+  ],
+  "keywords": [
+    "git",
+    "commit",
+    "spotify",
+    "music",
+    "audio",
+    "soundtrack",
+    "productivity"
+  ],
+  "activationEvents": [
+    "*"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "interactive-commit.detectAudio",
+        "title": "🎵 Detect Currently Playing Audio",
+        "category": "Interactive Commit"
+      },
+      {
+        "command": "interactive-commit.toggleStatusBar",
+        "title": "Toggle Status Bar Display",
+        "category": "Interactive Commit"
+      },
+      {
+        "command": "interactive-commit.openSettings",
+        "title": "Open Settings",
+        "category": "Interactive Commit"
+      }
+    ],
+    "configuration": {
+      "title": "Interactive Commit",
+      "properties": {
+        "interactive-commit.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable automatic audio detection for commits"
+        },
+        "interactive-commit.showStatusBar": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show currently playing track in status bar"
+        },
+        "interactive-commit.audioSources": {
+          "type": "array",
+          "default": [
+            "spotify",
+            "youtube",
+            "youtube-music",
+            "chrome",
+            "edge"
+          ],
+          "description": "Audio sources to detect from",
+          "items": {
+            "type": "string",
+            "enum": [
+              "spotify",
+              "youtube",
+              "youtube-music",
+              "chrome",
+              "edge",
+              "firefox"
+            ]
+          }
+        },
+        "interactive-commit.commitFormat": {
+          "type": "string",
+          "default": "🎵 Currently playing: \"{title}\" by {artist} ({source})",
+          "description": "Format template for commit message audio line"
+        },
+        "interactive-commit.refreshInterval": {
+          "type": "number",
+          "default": 5000,
+          "description": "Status bar refresh interval in milliseconds"
+        },
+        "interactive-commit.timeout": {
+          "type": "number",
+          "default": 3000,
+          "description": "Audio detection timeout in milliseconds"
+        }
+      }
+    },
+    "menus": {
+      "commandPalette": [
+        {
+          "command": "interactive-commit.detectAudio",
+          "when": "true"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./"
+  },
+  "devDependencies": {
+    "@types/node": "16.x",
+    "@types/vscode": "^1.74.0",
+    "typescript": "^4.9.4"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pixare40/interactive-commit.git"
+  },
+  "bugs": {
+    "url": "https://github.com/pixare40/interactive-commit/issues"
+  },
+  "homepage": "https://github.com/pixare40/interactive-commit#readme",
+  "license": "MIT",
+  "icon": "assets/icon.png",
+  "galleryBanner": {
+    "color": "#1DB954",
+    "theme": "dark"
+  },
+  "author": ""
+}
