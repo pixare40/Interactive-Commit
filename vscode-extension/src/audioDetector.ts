@@ -22,6 +22,13 @@ export interface AudioDetectorInterface {
     isAvailable(): Promise<boolean>;
 }
 
+export interface MediaControlInterface {
+    nextTrack(): Promise<boolean>;
+    previousTrack(): Promise<boolean>;
+    playPause(): Promise<boolean>;
+    getCurrentApp(): Promise<string | null>;
+}
+
 export class AudioDetector {
     private detectors: AudioDetectorInterface[] = [];
 
@@ -87,6 +94,39 @@ export class AudioDetector {
 
     getAvailableDetectors(): string[] {
         return this.detectors.map(d => d.name);
+    }
+
+    async nextTrack(): Promise<boolean> {
+        for (const detector of this.detectors) {
+            if (await detector.isAvailable() && 'nextTrack' in detector) {
+                const controlDetector = detector as AudioDetectorInterface & MediaControlInterface;
+                const result = await controlDetector.nextTrack();
+                if (result) return true;
+            }
+        }
+        return false;
+    }
+
+    async previousTrack(): Promise<boolean> {
+        for (const detector of this.detectors) {
+            if (await detector.isAvailable() && 'previousTrack' in detector) {
+                const controlDetector = detector as AudioDetectorInterface & MediaControlInterface;
+                const result = await controlDetector.previousTrack();
+                if (result) return true;
+            }
+        }
+        return false;
+    }
+
+    async playPause(): Promise<boolean> {
+        for (const detector of this.detectors) {
+            if (await detector.isAvailable() && 'playPause' in detector) {
+                const controlDetector = detector as AudioDetectorInterface & MediaControlInterface;
+                const result = await controlDetector.playPause();
+                if (result) return true;
+            }
+        }
+        return false;
     }
 }
 
@@ -301,11 +341,79 @@ class MPRISDetector implements AudioDetectorInterface {
     }
 }
 
-class MacOSDetector implements AudioDetectorInterface {
+class MacOSDetector implements AudioDetectorInterface, MediaControlInterface {
     name = 'macOS Now Playing';
 
     async isAvailable(): Promise<boolean> {
         return os.platform() === 'darwin';
+    }
+
+    async nextTrack(): Promise<boolean> {
+        const currentApp = await this.getCurrentApp();
+        if (!currentApp) return false;
+
+        try {
+            const script = `tell application "${currentApp}" to next track`;
+            await execAsync(`osascript -e '${script}'`);
+            return true;
+        } catch (error) {
+            console.warn('Next track failed:', error);
+            return false;
+        }
+    }
+
+    async previousTrack(): Promise<boolean> {
+        const currentApp = await this.getCurrentApp();
+        if (!currentApp) return false;
+
+        try {
+            const script = `tell application "${currentApp}" to previous track`;
+            await execAsync(`osascript -e '${script}'`);
+            return true;
+        } catch (error) {
+            console.warn('Previous track failed:', error);
+            return false;
+        }
+    }
+
+    async playPause(): Promise<boolean> {
+        const currentApp = await this.getCurrentApp();
+        if (!currentApp) return false;
+
+        try {
+            const script = `tell application "${currentApp}" to playpause`;
+            await execAsync(`osascript -e '${script}'`);
+            return true;
+        } catch (error) {
+            console.warn('Play/pause failed:', error);
+            return false;
+        }
+    }
+
+    async getCurrentApp(): Promise<string | null> {
+        const apps = ['Spotify', 'Music', 'iTunes'];
+        
+        for (const app of apps) {
+            try {
+                // Check if app is running and playing
+                const runningCmd = `tell application "System Events" to (name of processes) contains "${app}"`;
+                const runningResult = await execAsync(`osascript -e '${runningCmd}'`);
+                
+                if (runningResult.stdout.trim() === 'true') {
+                    const playingCmd = `tell application "${app}" to player state`;
+                    const playingResult = await execAsync(`osascript -e '${playingCmd}'`);
+                    const playerState = playingResult.stdout.trim();
+                    
+                    if (playerState === 'playing' || playerState === 'paused') {
+                        return app;
+                    }
+                }
+            } catch (error) {
+                continue;
+            }
+        }
+        
+        return null;
     }
 
     async detect(): Promise<MediaInfo | null> {

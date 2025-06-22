@@ -21,7 +21,10 @@ export function activate(context: vscode.ExtensionContext) {
     const commands = [
         vscode.commands.registerCommand('interactive-commit.detectAudio', detectAudio),
         vscode.commands.registerCommand('interactive-commit.toggleStatusBar', toggleStatusBar),
-        vscode.commands.registerCommand('interactive-commit.openSettings', openSettings)
+        vscode.commands.registerCommand('interactive-commit.openSettings', openSettings),
+        vscode.commands.registerCommand('interactive-commit.nextTrack', nextTrack),
+        vscode.commands.registerCommand('interactive-commit.previousTrack', previousTrack),
+        vscode.commands.registerCommand('interactive-commit.playPause', playPause)
     ];
 
     // Register git integration
@@ -58,10 +61,10 @@ async function detectAudio() {
         const media = await audioDetector.detectCurrentAudio();
         
         if (media) {
-            const message = `🎵 Currently playing: "${media.title}" by ${media.artist} (${media.source})`;
+            const message = `$(music) Currently playing: "${media.title}" by ${media.artist} (${media.source})`;
             vscode.window.showInformationMessage(message);
         } else {
-            vscode.window.showInformationMessage('🔇 No audio currently detected');
+            vscode.window.showInformationMessage('$(mute) No audio currently detected');
         }
     } catch (error) {
         console.error('Audio detection error:', error);
@@ -82,8 +85,50 @@ function openSettings() {
     vscode.commands.executeCommand('workbench.action.openSettings', 'interactive-commit');
 }
 
+async function nextTrack() {
+    try {
+        const success = await audioDetector.nextTrack();
+        if (success) {
+            vscode.window.showInformationMessage('$(chevron-right) Next track');
+        } else {
+            vscode.window.showWarningMessage('$(warning) Could not skip to next track');
+        }
+    } catch (error) {
+        console.error('Next track error:', error);
+        vscode.window.showErrorMessage('Failed to skip track: ' + (error as Error).message);
+    }
+}
+
+async function previousTrack() {
+    try {
+        const success = await audioDetector.previousTrack();
+        if (success) {
+            vscode.window.showInformationMessage('$(chevron-left) Previous track');
+        } else {
+            vscode.window.showWarningMessage('$(warning) Could not go to previous track');
+        }
+    } catch (error) {
+        console.error('Previous track error:', error);
+        vscode.window.showErrorMessage('Failed to go to previous track: ' + (error as Error).message);
+    }
+}
+
+async function playPause() {
+    try {
+        const success = await audioDetector.playPause();
+        if (success) {
+            vscode.window.showInformationMessage('$(debug-pause) Play/Pause toggled');
+        } else {
+            vscode.window.showWarningMessage('$(warning) Could not toggle play/pause');
+        }
+    } catch (error) {
+        console.error('Play/pause error:', error);
+        vscode.window.showErrorMessage('Failed to toggle play/pause: ' + (error as Error).message);
+    }
+}
+
 function showWelcomeMessage() {
-    const message = '🎵 Interactive Commit is ready! Your commits will now include your soundtrack.';
+    const message = '$(music) Interactive Commit is ready! Your commits will now include your soundtrack.';
     const openSettingsText = 'Open Settings';
     const testDetectionText = 'Test Detection';
     

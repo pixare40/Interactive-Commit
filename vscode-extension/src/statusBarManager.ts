@@ -4,6 +4,7 @@ import { ConfigManager } from './configManager';
 
 export class StatusBarManager implements vscode.Disposable {
     private statusBarItem: vscode.StatusBarItem;
+    private controlButtons: vscode.StatusBarItem[] = [];
     private updateTimer: NodeJS.Timer | undefined;
     private currentMedia: MediaInfo | null = null;
 
@@ -18,6 +19,41 @@ export class StatusBarManager implements vscode.Disposable {
         
         this.statusBarItem.command = 'interactive-commit.detectAudio';
         this.statusBarItem.tooltip = 'Click to detect audio • Interactive Commit';
+        
+        // Create control buttons
+        this.createControlButtons();
+    }
+
+    private createControlButtons() {
+        // Previous button
+        const prevButton = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 103);
+        prevButton.text = '$(chevron-left)';
+        prevButton.command = 'interactive-commit.previousTrack';
+        prevButton.tooltip = '⏮ Previous Track';
+        
+        // Play/Pause button  
+        const playButton = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 102);
+        playButton.text = '$(debug-pause)';
+        playButton.command = 'interactive-commit.playPause';
+        playButton.tooltip = '⏯ Play/Pause';
+        
+        // Next button
+        const nextButton = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 101);
+        nextButton.text = '$(chevron-right)';
+        nextButton.command = 'interactive-commit.nextTrack';
+        nextButton.tooltip = '⏭ Next Track';
+        
+        this.controlButtons = [prevButton, playButton, nextButton];
+    }
+
+    private showControlButtons() {
+        if (this.config.showStatusBar()) {
+            this.controlButtons.forEach(button => button.show());
+        }
+    }
+
+    private hideControlButtons() {
+        this.controlButtons.forEach(button => button.hide());
     }
 
     start() {
@@ -72,25 +108,28 @@ export class StatusBarManager implements vscode.Disposable {
                 this.statusBarItem.text = this.formatStatusText(media);
                 this.statusBarItem.backgroundColor = undefined;
                 this.statusBarItem.tooltip = this.formatTooltip(media);
+                this.showControlButtons();
             } else {
                 if (this.currentMedia) {
                     // Recently stopped playing
                     this.currentMedia = null;
-                    this.statusBarItem.text = '🔇 No audio';
+                    this.statusBarItem.text = '$(mute) No audio';
                     this.statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.warningBackground');
                     this.statusBarItem.tooltip = 'No audio currently playing • Interactive Commit';
+                    this.hideControlButtons();
                 } else {
                     // Still no audio
-                    this.statusBarItem.text = '🎵 Interactive Commit';
+                    this.statusBarItem.text = '$(music) Interactive Commit';
                     this.statusBarItem.backgroundColor = undefined;
                     this.statusBarItem.tooltip = 'Click to detect audio • Interactive Commit';
+                    this.hideControlButtons();
                 }
             }
         } catch (error) {
             console.error('Status bar update failed:', error);
-            this.statusBarItem.text = '🎵 Detection Error';
+            this.statusBarItem.text = '$(warning) Detection Error';
             this.statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.errorBackground');
-            this.statusBarItem.tooltip = `Audio detection failed: ${error} • Interactive Commit`;
+            this.statusBarItem.tooltip = `⚠ Audio detection failed: ${error} • Interactive Commit`;
         }
     }
 
@@ -99,16 +138,19 @@ export class StatusBarManager implements vscode.Disposable {
         let text = '';
 
         if (media.artist) {
-            text = `🎵 ${media.title} - ${media.artist}`;
+            text = `$(music) ${media.title} - ${media.artist}`;
         } else {
-            text = `🎵 ${media.title}`;
+            text = `$(music) ${media.title}`;
         }
 
         // Add source indicator
         const sourceIcon = this.getSourceIcon(media.source);
         if (sourceIcon) {
-            text = `${sourceIcon} ${text.substring(2)}`; // Replace 🎵 with source icon
+            text = `${sourceIcon} ${text.substring(8)}`; // Replace $(music) with source icon
         }
+
+        // Add service-specific styling
+        text = this.addServiceStyling(text, media.source);
 
         // Truncate if too long
         if (text.length > maxLength) {
@@ -118,8 +160,22 @@ export class StatusBarManager implements vscode.Disposable {
         return text;
     }
 
+    private addServiceStyling(text: string, source: string): string {
+        // Add subtle service indicators
+        switch (source) {
+            case 'Spotify':
+                return `${text} • Spotify`;
+            case 'YouTube Music':
+                return `${text} • YT Music`;
+            case 'Apple Music':
+                return `${text} • Apple Music`;
+            default:
+                return text;
+        }
+    }
+
     private formatTooltip(media: MediaInfo): string {
-        let tooltip = `🎵 Currently Playing:\n`;
+        let tooltip = `♪ Currently Playing:\n`;
         tooltip += `Title: ${media.title}\n`;
         if (media.artist) {
             tooltip += `Artist: ${media.artist}\n`;
@@ -129,25 +185,25 @@ export class StatusBarManager implements vscode.Disposable {
         }
         tooltip += `Source: ${media.source}\n`;
         tooltip += `Type: ${media.type}\n\n`;
-        tooltip += `Click to detect audio • Interactive Commit`;
+        tooltip += `⚙ Click to detect audio • Interactive Commit`;
         
         return tooltip;
     }
 
     private getSourceIcon(source: string): string {
         const icons: { [key: string]: string } = {
-            'Spotify': '🟢',
-            'YouTube': '🔴',
-            'YouTube Music': '🎵',
-            'Chrome': '🌐',
-            'Edge': '🔵',
-            'Firefox': '🦊',
-            'VLC': '🎬',
-            'iTunes': '🍎',
-            'Apple Music': '🍎'
+            'Spotify': '$(music)',
+            'YouTube': '$(device-camera-video)',
+            'YouTube Music': '$(music)',
+            'Chrome': '$(browser)',
+            'Edge': '$(browser)', 
+            'Firefox': '$(browser)',
+            'VLC': '$(device-camera-video)',
+            'iTunes': '$(music)',
+            'Apple Music': '$(music)'
         };
 
-        return icons[source] || '🎵';
+        return icons[source] || '$(music)';
     }
 
     getCurrentMedia(): MediaInfo | null {
@@ -157,5 +213,6 @@ export class StatusBarManager implements vscode.Disposable {
     dispose() {
         this.stopUpdating();
         this.statusBarItem.dispose();
+        this.controlButtons.forEach(button => button.dispose());
     }
 } 
