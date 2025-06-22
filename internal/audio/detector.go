@@ -496,7 +496,47 @@ func (m *MacOSDetector) detectBrowserMedia(ctx context.Context) (*MediaInfo, err
 }
 
 func (m *MacOSDetector) findMediaWindows(windowTitles string) []string {
-	lines := strings.Split(windowTitles, ", ")
+	// Split windows more intelligently by looking for " - Google Chrome" as a delimiter
+	// This approach is more reliable than splitting on ", " which can appear in song titles
+	var lines []string
+
+	// Find all occurrences of " - Google Chrome"
+	chromePattern := " - Google Chrome"
+	if strings.Contains(windowTitles, chromePattern) {
+		// Split by the Chrome pattern, but keep the pattern with each window
+		parts := strings.Split(windowTitles, chromePattern)
+		for i, part := range parts {
+			if i == len(parts)-1 && strings.TrimSpace(part) == "" {
+				// Skip the last empty part
+				continue
+			}
+
+			if i > 0 {
+				// Add back the Chrome pattern to all parts except the first
+				part = chromePattern + part
+			} else if i < len(parts)-1 {
+				// Add the Chrome pattern to the first part if it's not the only part
+				part = part + chromePattern
+			}
+
+			// Clean up any leading/trailing commas and spaces
+			part = strings.TrimSpace(part)
+			if strings.HasPrefix(part, ", ") {
+				part = strings.TrimPrefix(part, ", ")
+			}
+			if strings.HasSuffix(part, ",") {
+				part = strings.TrimSuffix(part, ",")
+			}
+
+			if part != "" {
+				lines = append(lines, part)
+			}
+		}
+	} else {
+		// Fallback to simple comma splitting if no Chrome pattern found
+		lines = strings.Split(windowTitles, ", ")
+	}
+
 	var mediaWindows []string
 
 	// Prioritize windows with "Audio playing" indicator
@@ -523,9 +563,28 @@ func (m *MacOSDetector) findMediaWindows(windowTitles string) []string {
 func (m *MacOSDetector) parseMediaTitle(windowTitle string) (title, artist string) {
 	// Clean up the window title first
 	cleanTitle := windowTitle
+
+	// Remove Chrome memory usage indicators
 	cleanTitle = strings.ReplaceAll(cleanTitle, "– Audio playing", "")
+	cleanTitle = strings.ReplaceAll(cleanTitle, "- High memory usage", "")
+
+	// Remove memory usage patterns like "- 841 MB"
+	if strings.Contains(cleanTitle, " MB - Google Chrome") {
+		parts := strings.Split(cleanTitle, " MB - Google Chrome")
+		if len(parts) > 0 {
+			// Find the last " - " before " MB" to remove the memory info
+			beforeMB := parts[0]
+			lastDashIndex := strings.LastIndex(beforeMB, " - ")
+			if lastDashIndex > 0 {
+				cleanTitle = beforeMB[:lastDashIndex] + " - Google Chrome" + strings.Join(parts[1:], " MB - Google Chrome")
+			}
+		}
+	}
+
+	// Remove browser suffixes
 	cleanTitle = strings.ReplaceAll(cleanTitle, "- Google Chrome", "")
 	cleanTitle = strings.ReplaceAll(cleanTitle, "- YouTube", "")
+
 	// Remove user indicators like "– Kabaji"
 	if strings.Contains(cleanTitle, "–") {
 		parts := strings.Split(cleanTitle, "–")
