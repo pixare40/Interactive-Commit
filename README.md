@@ -8,16 +8,6 @@ Interactive-Commit is a git hook that automatically appends your currently playi
 
 https://github.com/user-attachments/assets/68d1fdcf-912b-4f60-a9b5-76ed94cf1d0e
 
-## 🌟 Vision
-
-Imagine correlating your most productive coding sessions with your playlist, or looking back at old commits and remembering the exact mood when you wrote that breakthrough algorithm. This isn't just about fun commit messages - it's about creating data that could revolutionize how we understand developer productivity.
-
-**Future Possibilities:**
-- 🎯 **Developer Analytics**: Spotify/YouTube Music insights for optimal coding playlists
-- 📊 **Team Coordination**: Shared soundtracks for better collaboration  
-- 🧠 **Productivity Research**: Correlate music genres with code quality and bug rates
-- 💼 **Enterprise Features**: Mood-based development environment optimization
-
 ## 🚀 Quick Start
 
 ```bash
@@ -37,10 +27,10 @@ git add . && git commit -m "fix: resolve authentication bug"
 
 ## 🎯 Features
 
-- **🎵 Universal Audio Detection**: Works with Spotify, YouTube Music, Chrome, Edge, Firefox
-- **🌍 WSL2/Windows Bridge**: Breakthrough solution for cross-platform audio detection
-- **🔒 Privacy-First**: All audio data stays local on your machine
-- **📦 Single Binary**: Zero dependency installation
+- **Universal Audio Detection**: Works with Spotify, YouTube Music, Chrome, Edge, Firefox
+- **WSL2/Windows Bridge**: Breakthrough solution for cross-platform audio detection
+- **Privacy-First**: All audio data stays local on your machine
+- **Single Binary**: Zero dependency installation
 
 ## 🏗 Architecture
 
