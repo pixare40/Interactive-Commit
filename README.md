@@ -59,11 +59,11 @@ git add . && git commit -m "fix: resolve authentication bug"
 | WSL2 | Windows Browsers | Window Title Parsing | ✅ **Working** |
 | Linux Native | MPRIS/D-Bus | `playerctl` | ✅ **Working** |
 
-### 🚧 WSL2/Windows Integration (Our Breakthrough!)
+### 🚧 WSL2/Windows Integration
 
 **The Problem**: WSL2 runs in a separate Linux VM and traditionally can't access Windows audio streams.
 
-**Our Solution**: 
+**Current Solution**: 
 1. **Window Title Bridge**: PowerShell queries Windows process window titles from WSL2
 2. **Smart Pattern Matching**: Intelligent parsing of Spotify, YouTube Music, and browser titles
 3. **Cross-Platform Communication**: Seamless WSL2 ↔ Windows process interaction
