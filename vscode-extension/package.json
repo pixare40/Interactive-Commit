@@ -2,7 +2,7 @@
   "name": "interactive-commit",
   "displayName": "Interactive Commit - Soundtrack Your Code",
   "description": "Automatically append currently playing audio to your git commits. Works with Spotify, YouTube Music, and more!",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "publisher": "pixare40",
   "engines": {
     "vscode": "^1.74.0"
@@ -94,7 +94,7 @@
         },
         "interactive-commit.commitFormat": {
           "type": "string",
-          "default": "$(music) Currently playing: \"{title}\" by {artist} ({source})",
+          "default": "🎵 Currently playing: \"{title}\" by {artist} ({source})",
           "description": "Format template for commit message audio line"
         },
         "interactive-commit.refreshInterval": {
